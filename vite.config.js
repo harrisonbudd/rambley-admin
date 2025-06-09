@@ -6,6 +6,6 @@ export default defineConfig({
   plugins: [react()],
   preview: {
     host: '0.0.0.0',
-    port: process.env.PORT || 4173
+    port: parseInt(process.env.PORT) || 4173
   }
 })

@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "vite preview --host 0.0.0.0 --port $PORT"
+    "start": "serve --single --listen $PORT dist"
   },
   "dependencies": {
     "@radix-ui/react-select": "^2.2.5",
@@ -19,6 +19,7 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.2",
+    "serve": "^14.2.3",
     "tailwind-merge": "^3.3.0"
   },
   "devDependencies": {

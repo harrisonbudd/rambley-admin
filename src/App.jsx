@@ -10,6 +10,7 @@ import PropertiesPage from './pages/PropertiesPage'
 import ContactsPage from './pages/ContactsPage'
 import PromptPage from './pages/PromptPage'
 import SettingsPage from './pages/SettingsPage'
+import SandboxPage from './pages/SandboxPage'
 import Layout from './components/Layout'
 import { NotificationProvider } from './contexts/NotificationContext'
 import { useState } from 'react'
@@ -42,6 +43,7 @@ function App() {
             <Route path="/messages" element={<MessagesPage />} />
             <Route path="/tasks" element={<TasksPage />} />
             <Route path="/tasks/:taskId" element={<TaskDetailPage />} />
+            <Route path="/sandbox" element={<SandboxPage />} />
             <Route path="/escalations" element={<EscalationsPage />} />
             <Route path="/faqs" element={<FAQsPage />} />
             <Route path="/properties" element={<PropertiesPage />} />

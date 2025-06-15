@@ -11,7 +11,8 @@ import {
   Users,
   AlertTriangle,
   HelpCircle,
-  Bot
+  Bot,
+  PlayCircle
 } from 'lucide-react'
 import { Button } from './ui/button'
 import { useState, useEffect } from 'react'
@@ -20,6 +21,7 @@ import { cn } from '../lib/utils'
 const navigation = [
   { name: 'Messages', href: '/messages', icon: MessageSquare },
   { name: 'Tasks', href: '/tasks', icon: CheckSquare },
+  { name: 'Sandbox', href: '/sandbox', icon: PlayCircle },
   { name: 'Escalations', href: '/escalations', icon: AlertTriangle },
   { name: 'FAQs', href: '/faqs', icon: HelpCircle },
   { name: 'Properties', href: '/properties', icon: Home },

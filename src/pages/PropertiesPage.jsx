@@ -292,42 +292,80 @@ export default function PropertiesPage() {
                 Basic Information
               </CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="new-property-name">Property Name *</Label>
-                <Input 
-                  id="new-property-name" 
-                  value={newProperty.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  placeholder="Enter property name"
-                />
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1">
+                  <Label htmlFor="property-name" className="text-sm font-medium">Property Name *</Label>
+                  <Input
+                    id="property-name"
+                    value={newProperty.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    placeholder="e.g. Sunset Villa, Mountain Retreat"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="property-type" className="text-sm font-medium">Property Type *</Label>
+                  <select
+                    id="property-type"
+                    value={newProperty.type}
+                    onChange={(e) => handleInputChange('type', e.target.value)}
+                    className="w-full h-10 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-2"
+                  >
+                    <option value="">Select Type</option>
+                    <option value="villa">Villa</option>
+                    <option value="apartment">Apartment</option>
+                    <option value="house">House</option>
+                    <option value="condo">Condo</option>
+                    <option value="cabin">Cabin</option>
+                  </select>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="new-property-address">Address *</Label>
-                <Input 
-                  id="new-property-address" 
+
+              <div className="space-y-1">
+                <Label htmlFor="property-address" className="text-sm font-medium">Full Address *</Label>
+                <Input
+                  id="property-address"
                   value={newProperty.address}
                   onChange={(e) => handleInputChange('address', e.target.value)}
-                  placeholder="Enter full address"
+                  placeholder="Enter complete address"
                 />
               </div>
-              <div>
-                <Label htmlFor="new-checkin-time">Check-in Time</Label>
-                <Input 
-                  id="new-checkin-time" 
-                  value={newProperty.checkinTime}
-                  onChange={(e) => handleInputChange('checkinTime', e.target.value)}
-                  placeholder="e.g., 3:00 PM"
-                />
-              </div>
-              <div>
-                <Label htmlFor="new-checkout-time">Check-out Time</Label>
-                <Input 
-                  id="new-checkout-time" 
-                  value={newProperty.checkoutTime}
-                  onChange={(e) => handleInputChange('checkoutTime', e.target.value)}
-                  placeholder="e.g., 11:00 AM"
-                />
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                <div className="space-y-1">
+                  <Label htmlFor="property-bedrooms" className="text-sm font-medium">Bedrooms</Label>
+                  <Input
+                    id="property-bedrooms"
+                    type="number"
+                    min="0"
+                    value={newProperty.bedrooms}
+                    onChange={(e) => handleInputChange('bedrooms', parseInt(e.target.value) || 0)}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="property-bathrooms" className="text-sm font-medium">Bathrooms</Label>
+                  <Input
+                    id="property-bathrooms"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={newProperty.bathrooms}
+                    onChange={(e) => handleInputChange('bathrooms', parseFloat(e.target.value) || 0)}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="property-maxGuests" className="text-sm font-medium">Max Guests</Label>
+                  <Input
+                    id="property-maxGuests"
+                    type="number"
+                    min="1"
+                    value={newProperty.maxGuests}
+                    onChange={(e) => handleInputChange('maxGuests', parseInt(e.target.value) || 1)}
+                    placeholder="1"
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>

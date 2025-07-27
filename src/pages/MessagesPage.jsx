@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { cn } from '../lib/utils'
 import { useNavigate } from 'react-router-dom'
+import { Switch } from '../components/ui/switch'
 
 // Mock data
 const conversations = [
@@ -209,12 +210,12 @@ export default function MessagesPage() {
         "w-full lg:w-96 border-r bg-background",
         selectedConversation ? "hidden lg:block" : "block"
       )}>
-        <div className="p-6 border-b">
-          <h1 className="text-2xl font-bold text-brand-dark">Messages</h1>
-          <p className="text-brand-mid-gray">Guest conversations</p>
+        <div className="p-4 sm:p-6 border-b">
+          <h1 className="text-xl sm:text-2xl font-bold text-brand-dark">Messages</h1>
+          <p className="text-sm sm:text-base text-brand-mid-gray">Guest conversations</p>
           
           {/* Search Input */}
-          <div className="mt-4 relative">
+          <div className="mt-3 sm:mt-4 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-brand-mid-gray" />
             <Input
               value={searchQuery}
@@ -293,69 +294,40 @@ export default function MessagesPage() {
         {selectedConversation ? (
           <>
             {/* Chat Header */}
-            <div className="p-4 border-b bg-background flex items-center justify-between">
+            <div className="flex items-center justify-between p-4 border-b bg-background lg:hidden">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setSelectedConversation(null)}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
               <div className="flex items-center gap-3">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="lg:hidden"
-                  onClick={() => setSelectedConversation(null)}
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-                <div className="w-10 h-10 bg-brand-vanilla text-brand-dark rounded-full flex items-center justify-center font-medium text-sm">
-                  {(() => {
-                    const names = selectedConversation.guestName.split(' ')
-                    if (names.length >= 2) {
-                      return `${names[0][0]}${names[1][0]}`.toUpperCase()
-                    }
-                    return selectedConversation.guestName.substring(0, 2).toUpperCase()
-                  })()}
+                <div className="w-8 h-8 bg-brand-purple rounded-full flex items-center justify-center">
+                  <span className="text-xs font-medium text-white">
+                    {selectedConversation.guestName.split(' ').map(n => n[0]).join('')}
+                  </span>
                 </div>
                 <div>
-                  <h2 className="font-semibold text-brand-dark">{selectedConversation.guestName}</h2>
-                  <div className="flex items-center gap-1 text-xs text-brand-mid-gray">
-                    <Phone className="h-3 w-3" />
-                    <span>{selectedConversation.phone}</span>
-                    <span>•</span>
-                    <span>{selectedConversation.property}</span>
-                  </div>
+                  <h2 className="font-medium text-brand-dark">{selectedConversation.guestName}</h2>
+                  <p className="text-xs text-brand-mid-gray">{selectedConversation.property}</p>
                 </div>
               </div>
-
-              {/* Auto Response Toggle */}
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-brand-mid-gray">Auto Response</span>
-                <Button
-                  variant={isAutoResponseEnabled ? "default" : "outline"}
-                  size="sm"
-                  onClick={toggleAutoResponse}
-                  className={cn(
-                    "transition-all duration-200",
-                    isAutoResponseEnabled 
-                      ? "bg-brand-purple hover:bg-brand-purple/90 text-white" 
-                      : "border-brand-purple text-brand-purple hover:bg-brand-purple/10"
-                  )}
-                >
-                  {isAutoResponseEnabled ? (
-                    <>
-                      <Bot className="h-4 w-4 mr-1" />
-                      ON
-                    </>
-                  ) : (
-                    <>
-                      <BotOff className="h-4 w-4 mr-1" />
-                      OFF
-                    </>
-                  )}
-                </Button>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={isAutoResponseEnabled}
+                  onCheckedChange={toggleAutoResponse}
+                />
+                <span className="text-xs font-medium">ON</span>
               </div>
             </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              <AnimatePresence>
-                {selectedConversation.messages.map((message, index) => (
+            {/* Messages Container - with bottom padding for fixed input */}
+            <div className="flex-1 overflow-y-auto pb-20 lg:pb-0">
+              <div className="p-4 space-y-4">
+                <AnimatePresence>
+                  {selectedConversation.messages.map((message, index) => (
                   <motion.div
                     key={message.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -367,7 +339,7 @@ export default function MessagesPage() {
                     )}
                   >
                     <div className={cn(
-                      "max-w-xs lg:max-w-md",
+                      "max-w-[85%] sm:max-w-xs lg:max-w-md",
                       message.sender === 'host' ? "flex flex-col items-end" : ""
                     )}>
                       {/* Sender Badge for host messages */}
@@ -379,12 +351,12 @@ export default function MessagesPage() {
                       
                       {/* Message Bubble */}
                       <div className={cn(
-                        "px-4 py-2 rounded-lg",
+                        "px-3 sm:px-4 py-2 rounded-lg",
                         message.sender === 'host' 
                           ? "bg-brand-purple text-white" // Both Rambley and Host use purple background
                           : "bg-brand-vanilla text-brand-dark" // Guest messages unchanged
                       )}>
-                        <p className="text-sm">{message.text}</p>
+                        <p className="text-sm leading-relaxed">{message.text}</p>
                         <p className={cn(
                           "text-xs mt-1",
                           message.sender === 'host' 
@@ -400,11 +372,12 @@ export default function MessagesPage() {
                     </div>
                   </motion.div>
                 ))}
-              </AnimatePresence>
+                </AnimatePresence>
+              </div>
             </div>
 
-            {/* Message Input */}
-            <div className="p-4 border-t bg-background">
+            {/* Message Input - Fixed on mobile, normal on desktop */}
+            <div className="fixed bottom-0 left-0 right-0 lg:relative lg:bottom-auto lg:left-auto lg:right-auto p-4 border-t bg-background z-20 safe-area-inset-bottom">
               {!isAutoResponseEnabled && (
                 <div className="mb-3 p-2 bg-brand-vanilla/50 rounded-lg border border-brand-vanilla">
                   <div className="flex items-center gap-2 text-sm text-brand-dark">

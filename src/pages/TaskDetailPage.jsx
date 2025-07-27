@@ -7,6 +7,7 @@ import { Card, CardContent } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { cn } from '../lib/utils'
 import { useParams, useNavigate } from 'react-router-dom'
+import { Switch } from '../components/ui/switch'
 
 // Mock data restructured to group by person
 const tasks = [
@@ -393,72 +394,41 @@ export default function TaskDetailPage() {
       )}>
         {selectedConversation ? (
           <>
-            {/* Conversation Header */}
-            <div className="p-4 border-b bg-background flex items-center justify-between">
+            {/* Chat Header - Mobile only */}
+            <div className="flex items-center justify-between p-4 border-b bg-background lg:hidden">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setSelectedConversation(null)}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
               <div className="flex items-center gap-3">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="lg:hidden"
-                  onClick={() => setSelectedConversation(null)}
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-                <div className={cn(
-                  "w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm",
-                  selectedConversation.personType === 'guest' ? 'bg-brand-vanilla text-brand-dark' :
-                  selectedConversation.personType === 'staff' ? 'bg-brand-dark text-brand-vanilla' :
-                  'bg-brand-dark text-brand-vanilla'
-                )}>
-                  {(() => {
-                    const names = selectedConversation.personName.split(' ')
-                    if (names.length >= 2) {
-                      return `${names[0][0]}${names[1][0]}`.toUpperCase()
-                    }
-                    return selectedConversation.personName.substring(0, 2).toUpperCase()
-                  })()}
+                <div className="w-8 h-8 bg-brand-purple rounded-full flex items-center justify-center">
+                  <span className="text-xs font-medium text-white">
+                    {selectedConversation.personName.split(' ').map(n => n[0]).join('')}
+                  </span>
                 </div>
                 <div>
-                  <h2 className="font-semibold text-brand-dark">{selectedConversation.personName}</h2>
-                  <p className="text-xs text-brand-mid-gray">
-                    {selectedConversation.personRole} • {selectedConversation.messages.length} messages
-                  </p>
+                  <h2 className="font-medium text-brand-dark">{selectedConversation.personName}</h2>
+                  <p className="text-xs text-brand-mid-gray">{selectedConversation.personRole}</p>
                 </div>
               </div>
-
-              {/* Auto Response Toggle */}
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-brand-mid-gray">Auto Response</span>
-                <Button
-                  variant={isAutoResponseEnabled ? "default" : "outline"}
-                  size="sm"
-                  onClick={toggleAutoResponse}
-                  className={cn(
-                    "transition-all duration-200",
-                    isAutoResponseEnabled 
-                      ? "bg-brand-purple hover:bg-brand-purple/90 text-white" 
-                      : "border-brand-purple text-brand-purple hover:bg-brand-purple/10"
-                  )}
-                >
-                  {isAutoResponseEnabled ? (
-                    <>
-                      <Bot className="h-4 w-4 mr-1" />
-                      ON
-                    </>
-                  ) : (
-                    <>
-                      <BotOff className="h-4 w-4 mr-1" />
-                      OFF
-                    </>
-                  )}
-                </Button>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={isAutoResponseEnabled}
+                  onCheckedChange={toggleAutoResponse}
+                />
+                <span className="text-xs font-medium">ON</span>
               </div>
             </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              <AnimatePresence>
-                {selectedConversation.messages.map((message, index) => (
+            {/* Messages Container - with bottom padding for fixed input */}
+            <div className="flex-1 overflow-y-auto pb-20 lg:pb-0">
+              <div className="p-4 space-y-4">
+                <AnimatePresence>
+                  {selectedConversation.messages.map((message, index) => (
                   <motion.div
                     key={message.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -479,11 +449,11 @@ export default function TaskDetailPage() {
                       </div>
                     ) : (
                       <div className={cn(
-                        "max-w-xs lg:max-w-md",
+                        "max-w-[85%] sm:max-w-xs lg:max-w-md",
                         // Guest messages and contact messages (like Maria) on left, Rambley/host on right
                         message.sender === 'guest' || (message.sender !== 'guest' && message.sender !== 'rambley' && message.sender !== 'host')
-                          ? "mr-12" 
-                          : "ml-12"
+                          ? "mr-4 sm:mr-12" 
+                          : "ml-4 sm:ml-12"
                       )}>
                         {/* Sender badge for non-guest messages */}
                         {message.sender !== 'guest' && (message.sender === 'rambley' || message.sender === 'host') && (
@@ -538,11 +508,12 @@ export default function TaskDetailPage() {
                     )}
                   </motion.div>
                 ))}
-              </AnimatePresence>
+                </AnimatePresence>  
+              </div>
             </div>
 
-            {/* Message Input */}
-            <div className="p-4 border-t bg-background">
+            {/* Message Input - Fixed on mobile, normal on desktop */}
+            <div className="fixed bottom-0 left-0 right-0 lg:relative lg:bottom-auto lg:left-auto lg:right-auto p-4 border-t bg-background z-20 safe-area-inset-bottom">
               {!isAutoResponseEnabled && (
                 <div className="mb-3 p-2 bg-brand-vanilla/50 rounded-lg border border-brand-vanilla">
                   <div className="flex items-center gap-2 text-sm text-brand-dark">

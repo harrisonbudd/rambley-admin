@@ -151,12 +151,12 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-brand-dark">Tasks</h1>
-          <p className="text-brand-mid-gray">Manage cleaning, maintenance, and property tasks</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-brand-dark">Tasks</h1>
+          <p className="text-sm sm:text-base text-brand-mid-gray">Manage cleaning, maintenance, and property tasks</p>
         </div>
         <Button className="sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
@@ -165,7 +165,7 @@ export default function TasksPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col gap-4">
         {/* Status Filters */}
         <div className="flex flex-wrap gap-2">
           {[
@@ -180,13 +180,16 @@ export default function TasksPage() {
               variant={filter === filterOption.key ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilter(filterOption.key)}
-              className="capitalize"
+              className="capitalize text-xs sm:text-sm"
             >
-              {filterOption.label}
+              <span className="hidden sm:inline">{filterOption.label}</span>
+              <span className="sm:hidden">
+                {filterOption.key === 'in-progress' ? 'Progress' : filterOption.label.split(' ')[0]}
+              </span>
               <Badge 
                 variant="secondary" 
                 className={cn(
-                  "ml-2 text-xs pointer-events-none",
+                  "ml-1 sm:ml-2 text-xs pointer-events-none",
                   filter === filterOption.key 
                     ? "bg-white/20 text-white" 
                     : "bg-brand-mid-gray/10 text-brand-mid-gray"
@@ -198,14 +201,14 @@ export default function TasksPage() {
           ))}
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           {/* Property Filter */}
-          <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-brand-mid-gray" />
+          <div className="flex items-center gap-2 min-w-0">
+            <MapPin className="h-4 w-4 text-brand-mid-gray flex-shrink-0" />
             <select
               value={propertyFilter}
               onChange={(e) => setPropertyFilter(e.target.value)}
-              className="h-9 w-[200px] rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-2"
+              className="h-9 flex-1 sm:w-[200px] rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-2"
             >
               <option value="all">All Properties</option>
               {properties.map((property) => (
@@ -217,12 +220,13 @@ export default function TasksPage() {
           </div>
 
           {/* Search */}
-          <div className="flex items-center gap-2 flex-1 max-w-md">
-            <Search className="h-4 w-4 text-brand-mid-gray" />
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <Search className="h-4 w-4 text-brand-mid-gray flex-shrink-0" />
             <Input 
               placeholder="Search tasks..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1 min-w-0"
             />
           </div>
         </div>

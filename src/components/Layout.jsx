@@ -47,7 +47,7 @@ export default function Layout({ children, onLogout }) {
   }, [])
 
   return (
-    <div className="h-screen flex bg-brand-light">
+    <div className="h-screen flex bg-brand-light overflow-hidden">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && isMobile && (
         <motion.div
@@ -56,6 +56,7 @@ export default function Layout({ children, onLogout }) {
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
+          style={{ WebkitOverflowScrolling: 'touch' }}
         >
           <div className="absolute inset-0 bg-black/50" />
         </motion.div>
@@ -72,6 +73,7 @@ export default function Layout({ children, onLogout }) {
               }`
             : "static" // On desktop: always visible
         )}
+        style={{ WebkitOverflowScrolling: 'touch' }}
       >
         <div className="flex h-full flex-col">
           {/* Logo */}
@@ -124,8 +126,8 @@ export default function Layout({ children, onLogout }) {
 
       {/* Main content */}
       <div className="flex flex-1 flex-col">
-        {/* Top bar */}
-        <header className="flex h-16 items-center gap-4 border-b bg-background px-6">
+        {/* Top bar - Fixed on mobile */}
+        <header className="flex h-16 items-center gap-4 border-b bg-background px-6 fixed top-0 left-0 right-0 z-30 lg:static lg:top-auto lg:left-auto lg:right-auto safe-area-top">
           <Button
             onClick={() => setSidebarOpen(true)}
             variant="ghost"
@@ -137,8 +139,8 @@ export default function Layout({ children, onLogout }) {
           <div className="flex-1" />
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-auto">
+        {/* Page content - Adjusted for fixed header on mobile */}
+        <main className="flex-1 overflow-auto pt-16 lg:pt-0">
           <motion.div
             key={location.pathname}
             initial={{ opacity: 0, y: 20 }}

@@ -457,7 +457,8 @@ export default function PromptPage() {
                 {/* Subtasks */}
                 {expandedCategories[category] && (
                   <div className="border-t bg-gray-50">
-                    <div className="overflow-x-auto">
+                    {/* Desktop Table View */}
+                    <div className="hidden md:block overflow-x-auto">
                       <table className="w-full">
                         <thead>
                           <tr className="border-b bg-gray-100">
@@ -501,6 +502,39 @@ export default function PromptPage() {
                           ))}
                         </tbody>
                       </table>
+                    </div>
+
+                    {/* Mobile Card View */}
+                    <div className="md:hidden p-2 space-y-3">
+                      {tasks.map((task) => (
+                        <div key={task.id} className="bg-white rounded-lg p-3 border shadow-sm">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-brand-dark text-sm mb-2">{task.name}</h4>
+                              <div className="space-y-1 text-xs text-brand-mid-gray">
+                                <div><span className="font-medium">Contact:</span> {getContactName(task.contactId)}</div>
+                                <div><span className="font-medium">Location:</span> {getLocationName(task.locationId)}</div>
+                                <div className="pt-1">
+                                  <span className="font-medium">Requirements:</span>
+                                  <p className="mt-1 text-xs leading-relaxed">
+                                    {task.requirements.length > 100 
+                                      ? `${task.requirements.substring(0, 100)}...` 
+                                      : task.requirements}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => deleteTask(category, task.id)}
+                              className="hover:bg-red-50 hover:border-red-300 hover:text-red-600 flex-shrink-0"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}

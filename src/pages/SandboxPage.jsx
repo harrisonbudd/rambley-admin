@@ -572,169 +572,106 @@ export default function SandboxPage() {
               )}>
                 {selectedConversation ? (
                   <>
-                    {/* Chat Header */}
-                    <div className="p-4 border-b bg-background flex items-center justify-between">
+                    {/* Chat Header - Mobile only */}
+                    <div className="flex items-center justify-between p-4 border-b bg-background lg:hidden">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setSelectedConversation(null)}
+                      >
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Back
+                      </Button>
                       <div className="flex items-center gap-3">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="lg:hidden"
-                          onClick={() => setSelectedConversation(null)}
-                        >
-                          <ArrowLeft className="h-5 w-5" />
-                        </Button>
-                        <div className="w-10 h-10 bg-brand-vanilla text-brand-dark rounded-full flex items-center justify-center font-medium text-sm">
-                          {getInitials(selectedConversation.guestName)}
+                        <div className="w-8 h-8 bg-brand-purple rounded-full flex items-center justify-center">
+                          <span className="text-xs font-medium text-white">
+                            {selectedConversation.guestName.split(' ').map(n => n[0]).join('')}
+                          </span>
                         </div>
                         <div>
-                          <h2 className="font-semibold text-brand-dark">{selectedConversation.guestName}</h2>
-                          <div className="flex items-center gap-1 text-xs text-brand-mid-gray">
-                            <Phone className="h-3 w-3" />
-                            <span>{selectedConversation.phone}</span>
-                            <span>•</span>
-                            <span>{selectedConversation.property}</span>
-                          </div>
+                          <h2 className="font-medium text-brand-dark">{selectedConversation.guestName}</h2>
+                          <p className="text-xs text-brand-mid-gray">{selectedConversation.property}</p>
                         </div>
                       </div>
+                    </div>
 
-                      {/* Auto Response Toggle */}
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm text-brand-mid-gray">Auto Response</span>
-                        <Button
-                          variant={isAutoResponseEnabled ? "default" : "outline"}
-                          size="sm"
-                          onClick={toggleAutoResponse}
-                          className={cn(
-                            "transition-all duration-200",
-                            isAutoResponseEnabled 
-                              ? "bg-brand-purple hover:bg-brand-purple/90 text-white" 
-                              : "border-brand-purple text-brand-purple hover:bg-brand-purple/10"
-                          )}
-                        >
-                          {isAutoResponseEnabled ? (
-                            <>
-                              <Bot className="h-4 w-4 mr-1" />
-                              ON
-                            </>
-                          ) : (
-                            <>
-                              <BotOff className="h-4 w-4 mr-1" />
-                              OFF
-                            </>
-                          )}
-                        </Button>
+                    {/* Messages Container - with bottom padding for fixed input */}
+                    <div className="flex-1 overflow-y-auto pb-32 lg:pb-0">
+                      <div className="p-4 space-y-4">
+                        <AnimatePresence>
+                          {selectedConversation.messages.map((message, index) => (
+                            <motion.div
+                              key={message.id}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.1 }}
+                              className={cn(
+                                "flex",
+                                message.sender === 'host' ? "justify-end" : "justify-start"
+                              )}
+                            >
+                                                             <div className={cn(
+                                 "max-w-[85%] sm:max-w-xs lg:max-w-md",
+                                 message.sender === 'host' ? "flex flex-col items-end" : ""
+                               )}>
+                                {/* Sender Badge for host messages */}
+                                {message.sender === 'host' && (
+                                  <div className="mb-1">
+                                    {getSenderBadge(message)}
+                                  </div>
+                                )}
+                                
+                                {/* Message Bubble */}
+                                <div className={cn(
+                                  "px-4 py-2 rounded-lg",
+                                  message.sender === 'host' 
+                                    ? "bg-brand-purple text-white"
+                                    : "bg-brand-vanilla text-brand-dark"
+                                )}>
+                                  <p className="text-sm">{message.text}</p>
+                                  <p className={cn(
+                                    "text-xs mt-1",
+                                    message.sender === 'host' 
+                                      ? "text-white/70"
+                                      : "text-brand-mid-gray"
+                                  )}>
+                                    {message.timestamp}
+                                  </p>
+                                  
+                                  {/* Task Links */}
+                                  {renderTaskLinks(message.generatedTasks)}
+                                </div>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
                       </div>
                     </div>
 
-                    {/* Messages */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                      <AnimatePresence>
-                        {selectedConversation.messages.map((message, index) => (
-                          <motion.div
-                            key={message.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            className={cn(
-                              "flex",
-                              message.sender === 'host' ? "justify-end" : "justify-start"
-                            )}
-                          >
-                            <div className={cn(
-                              "max-w-xs lg:max-w-md",
-                              message.sender === 'host' ? "flex flex-col items-end" : ""
-                            )}>
-                              {/* Sender Badge for host messages */}
-                              {message.sender === 'host' && (
-                                <div className="mb-1">
-                                  {getSenderBadge(message)}
-                                </div>
-                              )}
-                              
-                              {/* Message Bubble */}
-                              <div className={cn(
-                                "px-4 py-2 rounded-lg",
-                                message.sender === 'host' 
-                                  ? "bg-brand-purple text-white"
-                                  : "bg-brand-vanilla text-brand-dark"
-                              )}>
-                                <p className="text-sm">{message.text}</p>
-                                <p className={cn(
-                                  "text-xs mt-1",
-                                  message.sender === 'host' 
-                                    ? "text-white/70"
-                                    : "text-brand-mid-gray"
-                                )}>
-                                  {message.timestamp}
-                                </p>
-                                
-                                {/* Task Links */}
-                                {renderTaskLinks(message.generatedTasks)}
-                              </div>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </AnimatePresence>
-                    </div>
-
-                    {/* Message Input */}
-                    <div className="p-4 border-t bg-background">
-                      {!isAutoResponseEnabled && (
-                        <div className="mb-3 p-2 bg-brand-vanilla/50 rounded-lg border border-brand-vanilla">
-                          <div className="flex items-center gap-2 text-sm text-brand-dark">
-                            <BotOff className="h-4 w-4" />
-                            <span>Auto-response is disabled. You're in manual mode for this conversation.</span>
+                    {/* Message Input - Fixed on mobile, normal on desktop */}  
+                    <div className="fixed bottom-0 left-0 right-0 lg:relative lg:bottom-auto lg:left-auto lg:right-auto p-4 border-t bg-background z-20 safe-area-inset-bottom">
+                      {/* Persona Selector */}
+                      {!selectedPersona && (
+                        <div className="mb-3 p-3 bg-brand-vanilla/50 rounded-lg border border-brand-vanilla">
+                          <div className="flex items-center gap-2 text-sm text-brand-dark mb-2">
+                            <Bot className="h-4 w-4" />
+                            <span className="font-medium">Choose your persona:</span>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {personas.map((persona) => (
+                              <Button
+                                key={persona.id}
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setSelectedPersona(persona)}
+                                className="text-xs"
+                              >
+                                {persona.label}
+                              </Button>
+                            ))}
                           </div>
                         </div>
                       )}
-                      
-                      {/* Persona Selection */}
-                      <div className="flex gap-2 mb-3">
-                        <div className="relative">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setShowPersonaDropdown(!showPersonaDropdown)}
-                            className="flex items-center gap-2"
-                          >
-                            {selectedPersona && <selectedPersona.icon className="h-4 w-4" />}
-                            <span>{selectedPersona ? selectedPersona.label : 'Select persona'}</span>
-                            <ChevronDown className="h-3 w-3" />
-                          </Button>
-                          {showPersonaDropdown && selectedConversation && (
-                            <div className="absolute bottom-full left-0 mb-2 w-64 bg-white border rounded-lg shadow-lg z-10">
-                              <div className="p-2">
-                                <p className="text-xs font-medium text-brand-mid-gray mb-2 px-2">Respond as:</p>
-                                {getRelevantPersonas(selectedConversation, hostName).map((persona) => (
-                                  <button
-                                    key={persona.id}
-                                    type="button"
-                                    onClick={() => {
-                                      setSelectedPersona(persona)
-                                      setShowPersonaDropdown(false)
-                                    }}
-                                    className={cn(
-                                      "w-full flex items-center gap-3 p-2 rounded-md text-left transition-colors",
-                                      selectedPersona && selectedPersona.id === persona.id 
-                                        ? "bg-brand-light" 
-                                        : "hover:bg-brand-light/50"
-                                    )}
-                                  >
-                                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", persona.color)}>
-                                      <persona.icon className="h-4 w-4" />
-                                    </div>
-                                    <div>
-                                      <p className="font-medium text-brand-dark text-sm">{persona.label}</p>
-                                      <p className="text-xs text-brand-mid-gray">{persona.description}</p>
-                                    </div>
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
 
                       <form onSubmit={handleSendMessage} className="flex gap-2">
                         <Input

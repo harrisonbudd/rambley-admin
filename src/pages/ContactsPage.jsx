@@ -227,9 +227,9 @@ export default function ContactsPage() {
             <CardHeader>
               <CardTitle>Contact Information</CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="new-contact-name">Name or Business Name *</Label>
+            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="new-contact-name" className="text-sm font-medium">Name or Business Name *</Label>
                 <Input 
                   id="new-contact-name" 
                   value={newContact.name}
@@ -237,8 +237,8 @@ export default function ContactsPage() {
                   placeholder="Enter name or business name"
                 />
               </div>
-              <div>
-                <Label htmlFor="new-contact-type">Service Type *</Label>
+              <div className="space-y-1">
+                <Label htmlFor="new-contact-type" className="text-sm font-medium">Service Type *</Label>
                 <Input 
                   id="new-contact-type" 
                   value={newContact.type}
@@ -246,8 +246,8 @@ export default function ContactsPage() {
                   placeholder="e.g. Cleaning Service, Maintenance, Tour Guide"
                 />
               </div>
-              <div>
-                <Label htmlFor="new-contact-phone">Phone Number *</Label>
+              <div className="space-y-1">
+                <Label htmlFor="new-contact-phone" className="text-sm font-medium">Phone Number *</Label>
                 <Input 
                   id="new-contact-phone" 
                   value={newContact.phone}
@@ -255,8 +255,8 @@ export default function ContactsPage() {
                   placeholder="+1 (555) 123-4567"
                 />
               </div>
-              <div>
-                <Label htmlFor="new-contact-email">Email Address *</Label>
+              <div className="space-y-1">
+                <Label htmlFor="new-contact-email" className="text-sm font-medium">Email Address *</Label>
                 <Input 
                   id="new-contact-email" 
                   value={newContact.email}
@@ -365,120 +365,4 @@ export default function ContactsPage() {
                       </div>
                       
                       <div>
-                        <Label htmlFor={`contact-phone-${contact.id}`}>Phone</Label>
-                        <Input
-                          id={`contact-phone-${contact.id}`}
-                          value={editForm.phone || ''}
-                          onChange={(e) => updateEditForm('phone', e.target.value)}
-                          className={errors.phone ? 'border-red-500' : ''}
-                          placeholder="+1 (555) 123-4567"
-                        />
-                        {errors.phone && (
-                          <p className="text-sm text-red-500 mt-1">{errors.phone}</p>
-                        )}
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor={`contact-email-${contact.id}`}>Email</Label>
-                        <Input
-                          id={`contact-email-${contact.id}`}
-                          value={editForm.email || ''}
-                          onChange={(e) => updateEditForm('email', e.target.value)}
-                          className={errors.email ? 'border-red-500' : ''}
-                          placeholder="email@example.com"
-                        />
-                        {errors.email && (
-                          <p className="text-sm text-red-500 mt-1">{errors.email}</p>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {/* Service Locations */}
-                    <div className="border-t pt-4">
-                      <Label className="text-sm font-medium text-brand-dark mb-3 block">
-                        Service Locations
-                      </Label>
-                      <div className="space-y-2">
-                        {availableProperties.map((property) => (
-                          <label key={property.id} className="flex items-center gap-3 p-2 rounded border hover:bg-gray-50 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={editForm.serviceLocations?.includes(property.id) || false}
-                              onChange={() => toggleServiceLocation(property.id, false)}
-                              className="h-4 w-4 text-brand-purple focus:ring-brand-purple border-gray-300 rounded"
-                            />
-                            <span className="text-sm text-brand-dark">{property.name}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <div className="flex gap-2 pt-2">
-                      <Button size="sm" onClick={saveContactChanges}>
-                        <Check className="h-4 w-4 mr-1" />
-                        Save Changes
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={cancelEditingContact}>
-                        <X className="h-4 w-4 mr-1" />
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  // View Mode
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-semibold text-brand-dark">{contact.name}</h4>
-                        <Badge variant="secondary" className="text-xs">
-                          {contact.type}
-                        </Badge>
-                      </div>
-                      <div className="flex gap-4 mt-2 text-xs text-brand-mid-gray">
-                        <span>{contact.phone}</span>
-                        <span>{contact.email}</span>
-                      </div>
-                      {contact.serviceLocations && contact.serviceLocations.length > 0 && (
-                        <div className="flex items-center gap-2 mt-3">
-                          <MapPin className="h-3 w-3 text-brand-mid-gray" />
-                          <span className="text-xs text-brand-mid-gray">Services:</span>
-                          <div className="flex gap-1 flex-wrap">
-                            {getPropertyNames(contact.serviceLocations).map((propertyName, index) => (
-                              <Badge key={index} variant="outline" className="text-xs bg-brand-vanilla/50 text-brand-dark border-brand-purple/20">
-                                {propertyName}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => startEditingContact(contact)}
-                        disabled={editingContact !== null}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => deleteContact(contact.id)}
-                        disabled={editingContact !== null}
-                        className="hover:bg-red-50 hover:border-red-300 hover:text-red-600"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </motion.div>
-      {showAddModal && <AddContactModal />}
-    </div>
-  )
-} 
+                        <Label htmlFor={`

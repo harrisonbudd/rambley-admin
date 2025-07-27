@@ -176,6 +176,87 @@ class ApiService {
     });
   }
 
+  // Properties methods
+  async getProperties(params = {}) {
+    const searchParams = new URLSearchParams();
+    
+    if (params.active !== undefined) searchParams.append('active', params.active);
+    if (params.search) searchParams.append('search', params.search);
+    if (params.page) searchParams.append('page', params.page);
+    if (params.limit) searchParams.append('limit', params.limit);
+    
+    const queryString = searchParams.toString();
+    return this.request(`/properties${queryString ? '?' + queryString : ''}`);
+  }
+
+  async getProperty(id) {
+    return this.request(`/properties/${id}`);
+  }
+
+  async createProperty(propertyData) {
+    return this.request('/properties', {
+      method: 'POST',
+      body: JSON.stringify(propertyData),
+    });
+  }
+
+  async updateProperty(id, propertyData) {
+    return this.request(`/properties/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(propertyData),
+    });
+  }
+
+  async deleteProperty(id) {
+    return this.request(`/properties/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Contacts methods
+  async getContacts(params = {}) {
+    const searchParams = new URLSearchParams();
+    
+    if (params.service_type) searchParams.append('service_type', params.service_type);
+    if (params.property_id) searchParams.append('property_id', params.property_id);
+    if (params.language) searchParams.append('language', params.language);
+    if (params.search) searchParams.append('search', params.search);
+    if (params.active !== undefined) searchParams.append('active', params.active);
+    if (params.page) searchParams.append('page', params.page);
+    if (params.limit) searchParams.append('limit', params.limit);
+    
+    const queryString = searchParams.toString();
+    return this.request(`/contacts${queryString ? '?' + queryString : ''}`);
+  }
+
+  async getContact(id) {
+    return this.request(`/contacts/${id}`);
+  }
+
+  async createContact(contactData) {
+    return this.request('/contacts', {
+      method: 'POST',
+      body: JSON.stringify(contactData),
+    });
+  }
+
+  async updateContact(id, contactData) {
+    return this.request(`/contacts/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(contactData),
+    });
+  }
+
+  async deleteContact(id) {
+    return this.request(`/contacts/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getContactsByProperty(propertyId) {
+    return this.request(`/contacts/by-property/${propertyId}`);
+  }
+
   // Check if user is authenticated
   isAuthenticated() {
     return !!this.token;

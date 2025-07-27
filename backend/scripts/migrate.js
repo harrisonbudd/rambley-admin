@@ -1,6 +1,7 @@
 import pool from '../config/database.js';
 import bcrypt from 'bcryptjs';
 import createContactsTables from './contacts-migration.js';
+import createMultiTenantStructure from './multi-tenant-migration.js';
 
 const runMigrations = async () => {
   try {
@@ -67,6 +68,9 @@ const runMigrations = async () => {
 
     // Run contacts system migration
     await createContactsTables();
+
+    // Run multi-tenant migration
+    await createMultiTenantStructure();
 
     console.log('🎉 Database migrations completed successfully!');
     

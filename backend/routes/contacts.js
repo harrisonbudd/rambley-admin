@@ -2,11 +2,13 @@ import express from 'express';
 import { validationResult, body, query } from 'express-validator';
 import pool from '../config/database.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { setAccountContext } from '../middleware/setAccountContext.js';
 
 const router = express.Router();
 
-// Apply authentication to all routes
+// Apply authentication and account context to all routes
 router.use(authenticateToken);
+router.use(setAccountContext);
 
 // Validation rules
 const contactValidation = [
@@ -206,13 +208,13 @@ router.post('/', contactValidation, async (req, res) => {
 
     // Insert contact
     const contactQuery = `
-      INSERT INTO contacts (name, service_type, phone, email, preferred_language, notes)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO contacts (name, service_type, phone, email, preferred_language, notes, account_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `;
 
     const contactResult = await client.query(contactQuery, [
-      name, service_type, phone, email, preferred_language, notes
+      name, service_type, phone, email, preferred_language, notes, req.user.accountId
     ]);
 
     const contact = contactResult.rows[0];

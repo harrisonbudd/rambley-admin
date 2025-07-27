@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Edit, Trash2, Check, X, MapPin, Database, FileText, RefreshCw } from 'lucide-react'
+import { Plus, Edit, Trash2, Check, X, MapPin, RefreshCw } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
@@ -270,36 +270,19 @@ export default function ContactsPage() {
     }
   }
 
-  // Data source indicator
-  const DataSourceIndicator = () => {
-    const isUsingApi = contactsService.isUsingApi()
-    const dataSource = contactsService.getCurrentDataSource()
-    
-    return (
-      <div className="flex items-center gap-2 text-xs text-brand-mid-gray">
-        {isUsingApi ? (
-          <>
-            <Database className="h-3 w-3" />
-            <span>Database API ({dataSource})</span>
-          </>
-        ) : (
-          <>
-            <FileText className="h-3 w-3" />
-            <span>Static Data ({dataSource})</span>
-          </>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={loadData}
-          disabled={loading}
-          className="h-6 px-2"
-        >
-          <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
-        </Button>
-      </div>
-    )
-  }
+  // Refresh button
+  const RefreshButton = () => (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={loadData}
+      disabled={loading}
+      className="h-6 px-2"
+      title="Refresh contacts"
+    >
+      <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+    </Button>
+  )
 
   const AddContactModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -479,9 +462,9 @@ export default function ContactsPage() {
         className="space-y-4"
       >
         <div className="flex justify-between items-center">
-          <div className="space-y-1">
+          <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-brand-dark">Contacts</h3>
-            <DataSourceIndicator />
+            <RefreshButton />
           </div>
           <Button onClick={() => setShowAddModal(true)} disabled={loading}>
             <Plus className="mr-2 h-4 w-4" />

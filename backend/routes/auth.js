@@ -17,9 +17,9 @@ const passwordValidation = [
 ];
 
 // Generate JWT tokens
-const generateTokens = (userId, email, role) => {
+const generateTokens = (userId, email, role, accountId) => {
   const accessToken = jwt.sign(
-    { userId, email, role },
+    { userId, email, role, accountId },
     process.env.JWT_SECRET,
     { expiresIn: '15m' }
   );
@@ -51,7 +51,7 @@ router.post('/login', [
 
     // Find user
     const result = await pool.query(
-      'SELECT id, email, password_hash, role, is_active, first_name, last_name FROM users WHERE email = $1',
+      'SELECT id, email, password_hash, role, is_active, first_name, last_name, account_id FROM users WHERE email = $1',
       [email]
     );
 
@@ -72,7 +72,7 @@ router.post('/login', [
     }
 
     // Generate tokens
-    const { accessToken, refreshToken } = generateTokens(user.id, user.email, user.role);
+    const { accessToken, refreshToken } = generateTokens(user.id, user.email, user.role, user.account_id);
 
     // Store refresh token (optional - for token revocation)
     await pool.query(
@@ -93,6 +93,7 @@ router.post('/login', [
         id: user.id,
         email: user.email,
         role: user.role,
+        accountId: user.account_id,
         firstName: user.first_name,
         lastName: user.last_name
       }
@@ -175,7 +176,7 @@ router.post('/refresh', async (req, res, next) => {
 
     // Get user details
     const userResult = await pool.query(
-      'SELECT id, email, role, is_active FROM users WHERE id = $1',
+      'SELECT id, email, role, is_active, account_id FROM users WHERE id = $1',
       [decoded.userId]
     );
 
@@ -187,7 +188,7 @@ router.post('/refresh', async (req, res, next) => {
 
     // Generate new access token
     const accessToken = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
+      { userId: user.id, email: user.email, role: user.role, accountId: user.account_id },
       process.env.JWT_SECRET,
       { expiresIn: '15m' }
     );

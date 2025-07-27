@@ -2,11 +2,13 @@ import express from 'express';
 import { validationResult, body, query } from 'express-validator';
 import pool from '../config/database.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { setAccountContext } from '../middleware/setAccountContext.js';
 
 const router = express.Router();
 
-// Apply authentication to all routes
+// Apply authentication and account context to all routes
 router.use(authenticateToken);
+router.use(setAccountContext);
 
 // Validation rules
 const propertyValidation = [
@@ -135,12 +137,12 @@ router.post('/', propertyValidation, async (req, res) => {
     }
 
     const query = `
-      INSERT INTO properties (name, address, description)
-      VALUES ($1, $2, $3)
+      INSERT INTO properties (name, address, description, account_id)
+      VALUES ($1, $2, $3, $4)
       RETURNING *
     `;
 
-    const result = await pool.query(query, [name, address, description]);
+    const result = await pool.query(query, [name, address, description, req.user.accountId]);
 
     res.status(201).json(result.rows[0]);
 

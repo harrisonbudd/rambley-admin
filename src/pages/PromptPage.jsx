@@ -265,20 +265,21 @@ export default function PromptPage() {
               id="system-prompt"
               value={prompt}
               onChange={(e) => handlePromptChange(e.target.value)}
-              className="w-full h-96 px-3 py-2 border border-input rounded-md text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-2"
+              className="w-full h-96 px-3 py-2 border border-input rounded-md text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-2 break-words whitespace-pre-wrap overflow-wrap-anywhere"
               placeholder="Enter the system prompt that will guide AI behavior..."
             />
           </div>
           
-          <div className="flex items-center justify-between pt-4 border-t">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 pt-4 border-t">
             <div className="text-sm text-brand-mid-gray">
               Characters: {prompt.length} | Lines: {prompt.split('\n').length}
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <Button 
                 variant="outline" 
                 onClick={handleReset}
                 disabled={prompt === defaultPrompt}
+                className="w-full sm:w-auto"
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Reset to Default
@@ -286,6 +287,7 @@ export default function PromptPage() {
               <Button 
                 onClick={handleSave}
                 disabled={!isEdited}
+                className="w-full sm:w-auto"
               >
                 <Save className="mr-2 h-4 w-4" />
                 Save Changes

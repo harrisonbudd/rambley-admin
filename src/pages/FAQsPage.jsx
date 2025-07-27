@@ -268,94 +268,92 @@ export default function FAQsPage() {
                       <CardContent className="p-6">
                         <div className="space-y-4">
                           {/* FAQ Header */}
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-start gap-3 flex-1">
-                              <div className="flex items-center justify-center w-6 h-6 bg-brand-mid-gray/10 rounded-full text-xs font-medium text-brand-mid-gray">
+                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
+                            <div className="flex items-start gap-3 flex-1 min-w-0">
+                              <div className="flex items-center justify-center w-6 h-6 bg-brand-mid-gray/10 rounded-full text-xs font-medium text-brand-mid-gray flex-shrink-0">
                                 {index + 1}
                               </div>
                               
-                              <div className="flex-1">
-                                <h4 className="font-semibold text-brand-dark mb-2">{faq.question}</h4>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-brand-dark mb-2 break-words">{faq.question}</h4>
                                 
-                                <div className="flex items-center gap-3 mb-3">
-                                  <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${typeInfo.color}`}>
-                                    <Icon className="h-3 w-3" />
-                                    {typeInfo.label}
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
+                                  <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${typeInfo.color} w-fit`}>
+                                    <Icon className="h-3 w-3 flex-shrink-0" />
+                                    <span className="whitespace-nowrap">{typeInfo.label}</span>
                                   </div>
                                   
                                   <div className="flex items-center gap-1 text-sm text-brand-mid-gray">
-                                    <TrendingUp className="h-3 w-3" />
-                                    Asked {faq.askCount} times
+                                    <TrendingUp className="h-3 w-3 flex-shrink-0" />
+                                    <span className="whitespace-nowrap">Asked {faq.askCount} times</span>
                                   </div>
                                   
                                   {faq.confidence && (
-                                    <Badge variant="outline" className="text-xs">
+                                    <Badge variant="outline" className="text-xs w-fit">
                                       {faq.confidence}% confidence
                                     </Badge>
                                   )}
                                 </div>
                                 
-                                <p className="text-xs text-brand-mid-gray mb-3">
+                                <p className="text-xs text-brand-mid-gray mb-3 break-words">
                                   Last asked: {faq.lastAsked}
                                 </p>
                               </div>
                             </div>
                             
-                            <div className="flex gap-2">
-                              <Button size="sm" variant="outline">
+                            <div className="flex gap-2 flex-shrink-0">
+                              <Button size="sm" variant="outline" className="h-8 w-8 p-0">
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button size="sm" variant="outline">
+                              <Button size="sm" variant="outline" className="h-8 w-8 p-0">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </div>
 
                           {/* Answer Section */}
-                          <div className="pl-9">
+                          <div className="pl-0 sm:pl-9 mt-4">
                             {faq.answerType === 'unanswered' ? (
                               // Unanswered - Show input or current answer
                               <div className="space-y-3">
                                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                                  <p className="text-sm text-red-800 font-medium mb-1">
+                                  <p className="text-sm text-red-800 font-medium mb-1 break-words">
                                     This question needs an answer
                                   </p>
-                                  <p className="text-xs text-red-600">
-                                    Guests have asked this {faq.askCount} times but no answer is available.
+                                  <p className="text-xs text-red-700 break-words">
+                                    Help improve guest experience by providing a helpful response.
                                   </p>
                                 </div>
                                 
                                 {isEditing ? (
                                   <div className="space-y-3">
-                                    <div>
-                                      <Label htmlFor={`answer-${faq.id}`}>Your Answer</Label>
+                                    <div className="space-y-2">
+                                      <Label htmlFor={`answer-${faq.id}`} className="text-sm font-medium">
+                                        Your Answer
+                                      </Label>
                                       <textarea
                                         id={`answer-${faq.id}`}
                                         value={answerDraft}
                                         onChange={(e) => setAnswerDraft(e.target.value)}
-                                        className="w-full h-24 px-3 py-2 border border-input rounded-md text-sm mt-1"
+                                        className="w-full h-24 px-3 py-2 border rounded-md text-sm resize-y focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-2 break-words"
                                         placeholder="Type your answer here..."
                                       />
                                     </div>
-                                    <div className="flex gap-2">
-                                      <Button size="sm" onClick={() => handleSaveAnswer(faq.id)}>
-                                        <Save className="h-4 w-4 mr-1" />
+                                    <div className="flex flex-col sm:flex-row gap-2">
+                                      <Button size="sm" onClick={() => handleSaveAnswer(faq.id)} className="w-full sm:w-auto">
+                                        <Save className="mr-2 h-4 w-4" />
                                         Save Answer
                                       </Button>
-                                      <Button size="sm" variant="outline" onClick={handleCancelAnswering}>
-                                        <X className="h-4 w-4 mr-1" />
+                                      <Button size="sm" variant="outline" onClick={handleCancelAnswering} className="w-full sm:w-auto">
+                                        <X className="mr-2 h-4 w-4" />
                                         Cancel
                                       </Button>
                                     </div>
                                   </div>
                                 ) : (
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline"
-                                    onClick={() => handleStartAnswering(faq)}
-                                    className="border-red-300 text-red-700 hover:bg-red-50"
-                                  >
-                                    Provide Answer
+                                  <Button size="sm" onClick={() => handleStartAnswering(faq)} className="w-full sm:w-auto">
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Add Answer
                                   </Button>
                                 )}
                               </div>
@@ -363,9 +361,9 @@ export default function FAQsPage() {
                               // Answered - Show current answer
                               <div className="space-y-2">
                                 <div className="p-3 bg-gray-50 border rounded-lg">
-                                  <p className="text-sm text-brand-dark">{faq.answer}</p>
+                                  <p className="text-sm text-brand-dark break-words whitespace-pre-wrap">{faq.answer}</p>
                                 </div>
-                                <p className="text-xs text-brand-mid-gray">
+                                <p className="text-xs text-brand-mid-gray break-words">
                                   {typeInfo.description}
                                 </p>
                               </div>

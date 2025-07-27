@@ -158,27 +158,27 @@ export default function FAQsPage() {
   const sortedFaqs = [...filteredFaqs].sort((a, b) => b.askCount - a.askCount)
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="space-y-6"
+        className="space-y-4 sm:space-y-6"
       >
         {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-brand-dark">Frequently Asked Questions</h1>
-            <p className="text-brand-mid-gray">Manage common questions and improve guest experience</p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-brand-dark">Frequently Asked Questions</h1>
+            <p className="text-sm sm:text-base text-brand-mid-gray">Manage common questions and improve guest experience</p>
           </div>
-          <Button>
+          <Button className="sm:w-auto flex-shrink-0">
             <Plus className="mr-2 h-4 w-4" />
             Add FAQ
           </Button>
         </div>
 
         {/* Filters and Search */}
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col gap-4">
           {/* Answer Type Filters */}
           <div className="flex flex-wrap gap-2">
             {[
@@ -192,13 +192,18 @@ export default function FAQsPage() {
                 variant={selectedFilter === filterOption.key ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setSelectedFilter(filterOption.key)}
-                className="capitalize"
+                className="capitalize text-xs sm:text-sm"
               >
-                {filterOption.label}
+                <span className="hidden sm:inline">{filterOption.label}</span>
+                <span className="sm:hidden">
+                  {filterOption.key === 'llm' ? 'AI Gen' : 
+                   filterOption.key === 'unanswered' ? 'Need Ans' : 
+                   filterOption.label.split(' ')[0]}
+                </span>
                 <Badge 
                   variant="secondary" 
                   className={cn(
-                    "ml-2 text-xs pointer-events-none",
+                    "ml-1 sm:ml-2 text-xs pointer-events-none",
                     selectedFilter === filterOption.key 
                       ? "bg-white/20 text-white" 
                       : "bg-brand-mid-gray/10 text-brand-mid-gray"
@@ -211,12 +216,13 @@ export default function FAQsPage() {
           </div>
 
           {/* Search */}
-          <div className="flex items-center gap-2 flex-1 max-w-md">
-            <Search className="h-4 w-4 text-brand-mid-gray" />
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <Search className="h-4 w-4 text-brand-mid-gray flex-shrink-0" />
             <Input 
               placeholder="Search FAQs..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1 min-w-0"
             />
           </div>
         </div>

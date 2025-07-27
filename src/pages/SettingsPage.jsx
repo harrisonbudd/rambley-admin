@@ -470,28 +470,28 @@ export default function SettingsPage() {
   const renderRules = () => (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-lg">Task Rules</CardTitle>
-            <Button size="sm">
+        <CardHeader className="pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+            <CardTitle className="text-lg min-w-0">Task Rules</CardTitle>
+            <Button size="sm" className="sm:w-auto flex-shrink-0">
               <Plus className="mr-2 h-4 w-4" />
               Add Rule
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 sm:space-y-4">
           {taskRules.map((rule) => (
-            <div key={rule.id} className="flex items-center justify-between p-3 border rounded-lg">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
+            <div key={rule.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-lg gap-3 sm:gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
                   <h4 className="font-medium text-brand-dark">{rule.name}</h4>
-                  <Badge variant="outline" className="text-xs">
+                  <Badge variant="outline" className="text-xs w-fit">
                     {rule.type}
                   </Badge>
                 </div>
                 <p className="text-sm text-brand-mid-gray">{rule.description}</p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between sm:justify-start gap-3 flex-shrink-0">
                 <Switch checked={rule.enabled} />
                 <div className="flex gap-1">
                   <Button size="sm" variant="outline">
@@ -508,10 +508,10 @@ export default function SettingsPage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-lg">Escalation Rules</CardTitle>
-            <Button size="sm">
+        <CardHeader className="pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+            <CardTitle className="text-lg min-w-0">Escalation Rules</CardTitle>
+            <Button size="sm" className="sm:w-auto flex-shrink-0">
               <Plus className="mr-2 h-4 w-4" />
               Add Rule
             </Button>
@@ -598,10 +598,11 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-brand-dark">Settings</h1>
-        <p className="text-brand-mid-gray">Manage your account, preferences, and business rules</p>
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+      {/* Header */}
+      <div className="min-w-0">
+        <h1 className="text-xl sm:text-2xl font-bold text-brand-dark">Settings</h1>
+        <p className="text-sm sm:text-base text-brand-mid-gray">Manage your account, preferences, and business rules</p>
       </div>
 
       {/* Tabs */}

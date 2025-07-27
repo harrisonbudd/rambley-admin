@@ -230,12 +230,12 @@ export default function PromptPage() {
   const renderSystemPrompt = () => (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-xl font-semibold text-brand-dark">System Prompt Configuration</h2>
-          <p className="text-brand-mid-gray">Configure how Rambley thinks about and handles all rules and interactions</p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-lg sm:text-xl font-semibold text-brand-dark">System Prompt Configuration</h2>
+          <p className="text-sm sm:text-base text-brand-mid-gray leading-relaxed">Configure how Rambley thinks about and handles all rules and interactions</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-shrink-0">
           {isEdited && (
             <span className="text-sm text-orange-600 font-medium">
               • Unsaved changes
@@ -437,19 +437,18 @@ export default function PromptPage() {
         <CardContent>
           <div className="space-y-2">
             {Object.entries(taskCategories).map(([category, tasks]) => (
-              <div key={category} className="border rounded-lg">
-                {/* Category Header */}
+              <div key={category} className="border rounded-lg overflow-hidden">
                 <button
                   onClick={() => toggleCategory(category)}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 rounded-lg"
+                  className="w-full p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-between">
                     {expandedCategories[category] ? (
                       <ChevronDown className="h-4 w-4 text-brand-mid-gray" />
                     ) : (
                       <ChevronRight className="h-4 w-4 text-brand-mid-gray" />
                     )}
-                    <h3 className="font-medium text-brand-dark">{category}</h3>
+                    <h3 className="font-medium text-brand-dark text-left flex-1 px-2">{category}</h3>
                     <span className="text-sm text-brand-mid-gray">({tasks.length} tasks)</span>
                   </div>
                 </button>
@@ -558,10 +557,10 @@ export default function PromptPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-brand-dark">AI Prompt Configuration</h1>
-        <p className="text-brand-mid-gray">Configure how Rambley thinks about and handles all rules and interactions</p>
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+      <div className="min-w-0">
+        <h1 className="text-xl sm:text-2xl font-bold text-brand-dark">AI Prompt Configuration</h1>
+        <p className="text-sm sm:text-base text-brand-mid-gray leading-relaxed">Configure how Rambley thinks about and handles all rules and interactions</p>
       </div>
 
       {/* Tabs */}

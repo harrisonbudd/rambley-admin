@@ -12,9 +12,9 @@ export const authenticateToken = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Verify user still exists and is active
+    // Verify user still exists and is active, and get account_id
     const result = await pool.query(
-      'SELECT id, email, role, is_active FROM users WHERE id = $1',
+      'SELECT id, email, role, is_active, account_id FROM users WHERE id = $1',
       [decoded.userId]
     );
 
@@ -22,10 +22,14 @@ export const authenticateToken = async (req, res, next) => {
       return res.status(401).json({ error: 'User not found or inactive' });
     }
 
+    const user = result.rows[0];
+
     req.user = {
       id: decoded.userId,
-      email: result.rows[0].email,
-      role: result.rows[0].role
+      userId: decoded.userId, // For compatibility
+      email: user.email,
+      role: user.role,
+      accountId: user.account_id || decoded.accountId // Use DB value, fallback to token
     };
     
     next();

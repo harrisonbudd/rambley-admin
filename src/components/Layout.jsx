@@ -1,152 +1,228 @@
+import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { 
   MessageSquare, 
-  CheckSquare, 
+  CheckSquare2, 
+  AlertTriangle, 
+  HelpCircle, 
+  Building2, 
+  Users, 
+  Bot, 
   Settings, 
   LogOut,
   Menu,
   X,
-  Home,
-  Users,
-  AlertTriangle,
-  HelpCircle,
-  Bot,
-  PlayCircle
+  PlayCircle,
+  User
 } from 'lucide-react'
 import { Button } from './ui/button'
-import { useState, useEffect } from 'react'
-import { cn } from '../lib/utils'
+import { useAuth } from '../contexts/AuthContext'
 
 const navigation = [
   { name: 'Messages', href: '/messages', icon: MessageSquare },
-  { name: 'Tasks', href: '/tasks', icon: CheckSquare },
+  { name: 'Tasks', href: '/tasks', icon: CheckSquare2 },
   { name: 'Sandbox', href: '/sandbox', icon: PlayCircle },
   { name: 'Escalations', href: '/escalations', icon: AlertTriangle },
   { name: 'FAQs', href: '/faqs', icon: HelpCircle },
-  { name: 'Properties', href: '/properties', icon: Home },
+  { name: 'Properties', href: '/properties', icon: Building2 },
   { name: 'Contacts', href: '/contacts', icon: Users },
-  { name: 'Prompt', href: '/prompt', icon: Bot },
+  { name: 'AI Prompt', href: '/prompt', icon: Bot },
   { name: 'Settings', href: '/settings', icon: Settings },
 ]
 
-export default function Layout({ children, onLogout }) {
-  const location = useLocation()
+export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
+  const location = useLocation()
+  const { user, logout, isAdmin } = useAuth()
 
-  useEffect(() => {
-    const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 1024) // lg breakpoint is 1024px
-    }
-    
-    checkScreenSize()
-    window.addEventListener('resize', checkScreenSize)
-    
-    return () => window.removeEventListener('resize', checkScreenSize)
-  }, [])
+  const handleLogout = async () => {
+    await logout()
+  }
 
   return (
-    <div className="h-screen flex bg-brand-light overflow-hidden">
-      {/* Mobile sidebar backdrop */}
-      {sidebarOpen && isMobile && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-          style={{ WebkitOverflowScrolling: 'touch' }}
-        >
-          <div className="absolute inset-0 bg-black/50" />
-        </motion.div>
-      )}
-
-      {/* Sidebar */}
-      <div
-        className={cn(
-          "w-64 bg-brand-dark lg:static lg:translate-x-0",
-          // On mobile: fixed positioning with conditional transform
-          isMobile 
-            ? `fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${
-                sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-              }`
-            : "static" // On desktop: always visible
-        )}
-        style={{ WebkitOverflowScrolling: 'touch' }}
-      >
-        <div className="flex h-full flex-col">
-          {/* Logo */}
-          <div className="flex h-16 items-center px-6 border-b border-brand-mid-gray/20">
-            <h1 className="text-xl font-bold text-white">Rambley Admin</h1>
+    <div className="h-screen flex overflow-hidden bg-gray-100">
+      {/* Mobile sidebar */}
+      <div className={`fixed inset-0 flex z-40 md:hidden ${sidebarOpen ? '' : 'pointer-events-none'}`}>
+        <div className={`fixed inset-0 bg-gray-600 bg-opacity-75 transition-opacity ease-linear duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0'}`} onClick={() => setSidebarOpen(false)} />
+        
+        <div className={`relative flex-1 flex flex-col max-w-xs w-full bg-brand-dark transform ease-in-out duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          <div className="absolute top-0 right-0 -mr-12 pt-2">
             <button
+              type="button"
+              className="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
               onClick={() => setSidebarOpen(false)}
-              className="ml-auto lg:hidden text-white"
             >
-              <X className="h-6 w-6" />
+              <X className="h-6 w-6 text-white" />
             </button>
           </div>
+          
+          <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
+            <div className="flex h-16 items-center px-6 border-b border-brand-mid-gray/20">
+              <h1 className="text-xl font-bold text-white">Rambley</h1>
+            </div>
+            <nav className="mt-5 px-2 space-y-1">
+              {navigation.map((item) => {
+                const Icon = item.icon
+                const isActive = location.pathname === item.href
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
+                      isActive
+                        ? 'bg-brand-purple text-white'
+                        : 'text-brand-light-gray hover:bg-brand-mid-gray/20 hover:text-white'
+                    }`}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <Icon className="mr-3 h-5 w-5" />
+                    {item.name}
+                  </Link>
+                )
+              })}
+            </nav>
+          </div>
+          
+          {/* User info and logout */}
+          <div className="flex-shrink-0 flex border-t border-brand-mid-gray/20 p-4">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="h-8 w-8 rounded-full bg-brand-purple flex items-center justify-center">
+                  <User className="h-4 w-4 text-white" />
+                </div>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-white">
+                  {user?.firstName} {user?.lastName}
+                </p>
+                <p className="text-xs text-brand-light-gray">
+                  {user?.email}
+                </p>
+                {isAdmin() && (
+                  <p className="text-xs text-brand-vanilla font-medium">
+                    Admin
+                  </p>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="ml-auto text-brand-light-gray hover:text-white hover:bg-brand-mid-gray/20"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2">
-            {navigation.map((item) => {
-              const isActive = location.pathname === item.href
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={cn(
-                    "flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-brand-purple text-white"
-                      : "text-gray-300 hover:bg-brand-mid-gray/30 hover:text-white"
-                  )}
-                >
-                  <item.icon className="mr-3 h-5 w-5" />
-                  {item.name}
-                </Link>
-              )
-            })}
-          </nav>
-
-          {/* Logout button */}
-          <div className="p-4 border-t border-brand-mid-gray/20">
-            <Button
-              onClick={onLogout}
-              variant="ghost"
-              className="w-full text-gray-300 hover:text-white hover:bg-brand-mid-gray/30"
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
-            </Button>
+      {/* Static sidebar for desktop */}
+      <div className="hidden md:flex md:flex-shrink-0">
+        <div className="flex flex-col w-64">
+          <div className="flex flex-col h-0 flex-1 bg-brand-dark">
+            {/* Logo */}
+            <div className="flex h-16 items-center px-6 border-b border-brand-mid-gray/20">
+              <h1 className="text-xl font-bold text-white">Rambley</h1>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="md:hidden ml-auto text-brand-light-gray hover:text-white"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            {/* Navigation */}
+            <div className="flex-1 flex flex-col overflow-y-auto">
+              <nav className="flex-1 px-2 py-4 space-y-1">
+                {navigation.map((item) => {
+                  const Icon = item.icon
+                  const isActive = location.pathname === item.href
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
+                        isActive
+                          ? 'bg-brand-purple text-white'
+                          : 'text-brand-light-gray hover:bg-brand-mid-gray/20 hover:text-white'
+                      }`}
+                    >
+                      <Icon className="mr-3 h-5 w-5" />
+                      {item.name}
+                    </Link>
+                  )
+                })}
+              </nav>
+              
+              {/* User info and logout */}
+              <div className="flex-shrink-0 flex border-t border-brand-mid-gray/20 p-4">
+                <div className="flex items-center w-full">
+                  <div className="flex-shrink-0">
+                    <div className="h-8 w-8 rounded-full bg-brand-purple flex items-center justify-center">
+                      <User className="h-4 w-4 text-white" />
+                    </div>
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <p className="text-sm font-medium text-white">
+                      {user?.firstName} {user?.lastName}
+                    </p>
+                    <p className="text-xs text-brand-light-gray">
+                      {user?.email}
+                    </p>
+                    {isAdmin() && (
+                      <p className="text-xs text-brand-vanilla font-medium">
+                        Admin
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="text-brand-light-gray hover:text-white hover:bg-brand-mid-gray/20"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Main content */}
-      <div className="flex flex-1 flex-col">
-        {/* Top bar - Fixed on mobile */}
-        <header className="flex h-16 items-center gap-4 border-b bg-background px-6 fixed top-0 left-0 right-0 z-30 lg:static lg:top-auto lg:left-auto lg:right-auto safe-area-top">
-          <Button
-            onClick={() => setSidebarOpen(true)}
-            variant="ghost"
-            size="icon"
-            className="lg:hidden"
-          >
-            <Menu className="h-6 w-6" />
-          </Button>
-          <div className="flex-1" />
-        </header>
+      <div className="flex flex-col w-0 flex-1 overflow-hidden">
+        {/* Mobile header */}
+        <div className="md:hidden">
+          <div className="relative z-10 flex-shrink-0 flex h-16 bg-white shadow">
+            <button
+              type="button"
+              className="px-4 border-r border-gray-200 text-gray-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-purple md:hidden"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu className="h-6 w-6" />
+            </button>
+            <div className="flex-1 px-4 flex justify-between">
+              <div className="flex-1 flex">
+                <div className="w-full flex md:ml-0">
+                  <div className="flex items-center text-lg font-semibold text-brand-dark">
+                    Rambley
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-        {/* Page content - Adjusted for fixed header on mobile */}
-        <main className="flex-1 overflow-auto pt-16 lg:pt-0">
+        {/* Page content */}
+        <main className="flex-1 relative overflow-y-auto focus:outline-none">
           <motion.div
-            key={location.pathname}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="h-full max-w-full overflow-x-hidden"
+            className="h-full"
           >
             {children}
           </motion.div>

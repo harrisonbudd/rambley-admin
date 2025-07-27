@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Rambley Admin - Git Backup Script
+# Rambley - Git Backup Script
 # Creates multiple backups for iron-clad version control
 
 set -e  # Exit on any error
 
-echo "🔄 Starting Rambley Admin backup process..."
+echo "🔄 Starting Rambley backup process..."
 
 # Get current date for backup naming
 DATE=$(date +%Y%m%d_%H%M%S)
@@ -56,7 +56,7 @@ echo "✅ Patches created in $PATCH_DIR"
 echo "🏥 Creating repository health report..."
 HEALTH_REPORT="$BACKUP_DIR/health-report-$DATE.txt"
 {
-    echo "Rambley Admin Repository Health Report - $DATE"
+    echo "Rambley Repository Health Report - $DATE"
     echo "=================================================="
     echo ""
     echo "Repository Status:"

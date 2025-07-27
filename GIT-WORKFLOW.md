@@ -1,6 +1,6 @@
-# 🚀 Rambley Admin Git Workflow Guide
+# 🚀 Rambley Git Workflow Guide
 
-This guide outlines the robust version control and deployment workflow for the Rambley Admin project.
+This guide outlines the robust version control and deployment workflow for the Rambley project.
 
 ## 📋 Branch Strategy
 

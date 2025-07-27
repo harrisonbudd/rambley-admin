@@ -13,46 +13,54 @@ import SettingsPage from './pages/SettingsPage'
 import SandboxPage from './pages/SandboxPage'
 import Layout from './components/Layout'
 import { NotificationProvider } from './contexts/NotificationContext'
-import { useState } from 'react'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 
-function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+function AppContent() {
+  const { isAuthenticated, isLoading } = useAuth()
 
-  const handleLogin = () => {
-    setIsAuthenticated(true)
-  }
-
-  const handleLogout = () => {
-    setIsAuthenticated(false)
-  }
-
-  if (!isAuthenticated) {
+  if (isLoading) {
     return (
-      <NotificationProvider>
-        <LoginPage onLogin={handleLogin} />
-      </NotificationProvider>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-purple to-brand-dark">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          className="w-8 h-8 border-2 border-white border-t-transparent rounded-full"
+        />
+      </div>
     )
   }
 
+  if (!isAuthenticated) {
+    return <LoginPage />
+  }
+
+  return (
+    <Router>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<Navigate to="/messages" replace />} />
+          <Route path="/messages" element={<MessagesPage />} />
+          <Route path="/tasks" element={<TasksPage />} />
+          <Route path="/tasks/:taskId" element={<TaskDetailPage />} />
+          <Route path="/sandbox" element={<SandboxPage />} />
+          <Route path="/escalations" element={<EscalationsPage />} />
+          <Route path="/faqs" element={<FAQsPage />} />
+          <Route path="/properties" element={<PropertiesPage />} />
+          <Route path="/contacts" element={<ContactsPage />} />
+          <Route path="/prompt" element={<PromptPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+        </Routes>
+      </Layout>
+    </Router>
+  )
+}
+
+function App() {
   return (
     <NotificationProvider>
-      <Router>
-        <Layout onLogout={handleLogout}>
-          <Routes>
-            <Route path="/" element={<Navigate to="/messages" replace />} />
-            <Route path="/messages" element={<MessagesPage />} />
-            <Route path="/tasks" element={<TasksPage />} />
-            <Route path="/tasks/:taskId" element={<TaskDetailPage />} />
-            <Route path="/sandbox" element={<SandboxPage />} />
-            <Route path="/escalations" element={<EscalationsPage />} />
-            <Route path="/faqs" element={<FAQsPage />} />
-            <Route path="/properties" element={<PropertiesPage />} />
-            <Route path="/contacts" element={<ContactsPage />} />
-            <Route path="/prompt" element={<PromptPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-          </Routes>
-        </Layout>
-      </Router>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </NotificationProvider>
   )
 }

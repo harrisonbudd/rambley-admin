@@ -4,21 +4,43 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
+import { useAuth } from '../contexts/AuthContext'
 
-export default function LoginPage({ onLogin }) {
-  const [email, setEmail] = useState('admin@rambley.com')
-  const [password, setPassword] = useState('password123')
-  const [isLoading, setIsLoading] = useState(false)
+export default function LoginPage() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [errors, setErrors] = useState({})
+  const { login, isLoading } = useAuth()
+
+  const validateForm = () => {
+    const newErrors = {}
+    
+    if (!email) {
+      newErrors.email = 'Email is required'
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = 'Please enter a valid email'
+    }
+    
+    if (!password) {
+      newErrors.password = 'Password is required'
+    }
+    
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setIsLoading(true)
     
-    // Simulate API call - accepts any email/password
-    setTimeout(() => {
-      setIsLoading(false)
-      onLogin()
-    }, 1000)
+    if (!validateForm()) {
+      return
+    }
+
+    const result = await login(email, password)
+    
+    if (!result.success) {
+      setErrors({ submit: result.error })
+    }
   }
 
   return (
@@ -36,38 +58,49 @@ export default function LoginPage({ onLogin }) {
             </div>
             <CardTitle className="text-2xl text-brand-dark">Welcome to Rambley</CardTitle>
             <CardDescription className="text-brand-mid-gray">
-              Sign in to access the admin dashboard
+              Sign in to access your dashboard
             </CardDescription>
-            <div className="mt-2 p-3 bg-brand-vanilla/20 rounded-md">
-              <p className="text-xs text-brand-dark font-medium">
-                🎯 Demo Mode: Use any email/password to login
-              </p>
-            </div>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {errors.submit && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-600">{errors.submit}</p>
+                </div>
+              )}
+              
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@rambley.com (or any email)"
+                  placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  className={errors.email ? 'border-red-300' : ''}
                   required
                 />
+                {errors.email && (
+                  <p className="text-sm text-red-600">{errors.email}</p>
+                )}
               </div>
+              
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   type="password"
-                  placeholder="password123 (or any password)"
+                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  className={errors.password ? 'border-red-300' : ''}
                   required
                 />
+                {errors.password && (
+                  <p className="text-sm text-red-600">{errors.password}</p>
+                )}
               </div>
+              
               <Button
                 type="submit"
                 className="w-full mt-6"

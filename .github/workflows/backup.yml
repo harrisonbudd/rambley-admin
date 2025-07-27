@@ -1,0 +1,71 @@
+name: 🔄 Automated Backup
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  push:
+    branches: [ main, develop ]
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch full history
+        
+    - name: 🔧 Configure Git
+      run: |
+        git config --global user.name 'Backup Bot'
+        git config --global user.email 'backup@rambley.com'
+        
+    - name: 📦 Create bundle backup
+      run: |
+        DATE=$(date +%Y%m%d_%H%M%S)
+        git bundle create "rambley-admin-backup-$DATE.bundle" --all
+        
+    - name: 📤 Upload backup artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: repository-backup-${{ github.sha }}
+        path: "*.bundle"
+        retention-days: 30
+        
+    - name: 🏥 Create health report
+      run: |
+        DATE=$(date +%Y%m%d_%H%M%S)
+        {
+          echo "Rambley Admin Repository Health Report - $DATE"
+          echo "=================================================="
+          echo ""
+          echo "Repository Status:"
+          git status --porcelain
+          echo ""
+          echo "Branch Information:"
+          git branch -vv
+          echo ""
+          echo "Remote Information:"  
+          git remote -v
+          echo ""
+          echo "Recent Commits:"
+          git log --oneline -10
+          echo ""
+          echo "Commit Count:"
+          git rev-list --count --all
+        } > "health-report-$DATE.txt"
+        
+    - name: 📊 Upload health report
+      uses: actions/upload-artifact@v4
+      with:
+        name: health-report-${{ github.sha }}
+        path: "health-report-*.txt"
+        retention-days: 30
+
+    - name: 🔔 Notify backup completion
+      run: |
+        echo "✅ Backup completed successfully for commit ${{ github.sha }}"
+        echo "📁 Artifacts available in GitHub Actions" 

@@ -199,8 +199,8 @@ router.post('/', contactValidation, async (req, res) => {
 
     await client.query('BEGIN');
 
-    // Check if email already exists
-    const emailCheck = await client.query('SELECT id FROM contacts WHERE email = $1', [email]);
+    // Check if email already exists (exclude soft-deleted contacts)
+    const emailCheck = await client.query('SELECT id FROM contacts WHERE email = $1 AND is_active = true', [email]);
     if (emailCheck.rows.length > 0) {
       await client.query('ROLLBACK');
       return res.status(400).json({ error: 'Email already exists' });
@@ -307,8 +307,8 @@ router.put('/:id', contactValidation, async (req, res) => {
       return res.status(404).json({ error: 'Contact not found' });
     }
 
-    // Check if email is taken by another contact
-    const emailCheck = await client.query('SELECT id FROM contacts WHERE email = $1 AND id != $2', [email, id]);
+    // Check if email is taken by another contact (exclude soft-deleted contacts)
+    const emailCheck = await client.query('SELECT id FROM contacts WHERE email = $1 AND id != $2 AND is_active = true', [email, id]);
     if (emailCheck.rows.length > 0) {
       await client.query('ROLLBACK');
       return res.status(400).json({ error: 'Email already exists' });

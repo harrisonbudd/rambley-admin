@@ -1,5 +1,6 @@
 import pool from '../config/database.js';
 import bcrypt from 'bcryptjs';
+import createContactsTables from './contacts-migration.js';
 
 const runMigrations = async () => {
   try {
@@ -63,6 +64,9 @@ const runMigrations = async () => {
     } else {
       console.log(`ℹ️  Found ${adminCount} admin user(s) - skipping default user creation`);
     }
+
+    // Run contacts system migration
+    await createContactsTables();
 
     console.log('🎉 Database migrations completed successfully!');
     

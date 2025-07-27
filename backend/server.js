@@ -7,6 +7,8 @@ import rateLimit from 'express-rate-limit';
 
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
+import contactRoutes from './routes/contacts.js';
+import propertyRoutes from './routes/properties.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { authenticateToken } from './middleware/auth.js';
 
@@ -52,6 +54,8 @@ app.get('/health', (req, res) => {
 // Routes
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', authenticateToken, userRoutes);
+app.use('/api/contacts', contactRoutes);
+app.use('/api/properties', propertyRoutes);
 
 // Error handling
 app.use(errorHandler);

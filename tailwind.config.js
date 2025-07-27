@@ -56,6 +56,7 @@ export default {
           vanilla: "#ECE4B7",
           dark: "#1A1A1D",
           "mid-gray": "#4E4E50",
+          "light-gray": "#9CA3AF",
           light: "#F5F5F5",
         },
       },

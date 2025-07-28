@@ -31,6 +31,8 @@ export default function FAQsPage() {
   const [selectedFilter, setSelectedFilter] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [saving, setSaving] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [newFaq, setNewFaq] = useState({ question: '', answer: '', answer_type: 'unanswered' })
 
   // Load FAQs from API
   useEffect(() => {
@@ -112,6 +114,29 @@ export default function FAQsPage() {
     } catch (err) {
       console.error('Error deleting FAQ:', err)
       setError('Failed to delete FAQ. Please try again.')
+    }
+  }
+
+  const handleAddFAQ = async () => {
+    if (!newFaq.question.trim()) return
+    
+    try {
+      setSaving(true)
+      await apiService.createFAQ({
+        question: newFaq.question.trim(),
+        answer: newFaq.answer.trim() || null,
+        answer_type: newFaq.answer.trim() ? 'host' : 'unanswered'
+      })
+      
+      // Reload FAQs and close modal
+      await loadFAQs()
+      setShowAddModal(false)
+      setNewFaq({ question: '', answer: '', answer_type: 'unanswered' })
+    } catch (err) {
+      console.error('Error adding FAQ:', err)
+      setError('Failed to add FAQ. Please try again.')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -207,7 +232,10 @@ export default function FAQsPage() {
             <h1 className="text-xl sm:text-2xl font-bold text-brand-dark">Frequently Asked Questions</h1>
             <p className="text-sm sm:text-base text-brand-mid-gray">Manage common questions and improve guest experience</p>
           </div>
-          <Button className="sm:w-auto flex-shrink-0">
+          <Button 
+            className="sm:w-auto flex-shrink-0"
+            onClick={() => setShowAddModal(true)}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Add FAQ
           </Button>
@@ -424,6 +452,76 @@ export default function FAQsPage() {
             </>
           )}
         </div>
+
+        {/* Add FAQ Modal */}
+        {showAddModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold text-brand-dark">Add New FAQ</h2>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    setShowAddModal(false)
+                    setNewFaq({ question: '', answer: '', answer_type: 'unanswered' })
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="question" className="text-sm font-medium">
+                    Question *
+                  </Label>
+                  <Input
+                    id="question"
+                    value={newFaq.question}
+                    onChange={(e) => setNewFaq({ ...newFaq, question: e.target.value })}
+                    placeholder="Enter the FAQ question..."
+                    className="mt-1"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="answer" className="text-sm font-medium">
+                    Answer (optional)
+                  </Label>
+                  <textarea
+                    id="answer"
+                    value={newFaq.answer}
+                    onChange={(e) => setNewFaq({ ...newFaq, answer: e.target.value })}
+                    placeholder="Enter the answer (leave blank if unanswered)..."
+                    className="mt-1 w-full h-24 px-3 py-2 border rounded-md text-sm resize-y focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-2"
+                  />
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-2 pt-4">
+                  <Button 
+                    onClick={handleAddFAQ}
+                    disabled={saving || !newFaq.question.trim()}
+                    className="flex-1"
+                  >
+                    <Save className="mr-2 h-4 w-4" />
+                    {saving ? 'Adding...' : 'Add FAQ'}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowAddModal(false)
+                      setNewFaq({ question: '', answer: '', answer_type: 'unanswered' })
+                    }}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </motion.div>
     </div>
   )

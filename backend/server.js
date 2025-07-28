@@ -60,6 +60,17 @@ app.get('/migrate-faqs', async (req, res) => {
     res.json({ success: true, message: 'FAQ migration completed successfully!' });
   } catch (error) {
     console.error('Migration error:', error);
+    res.status(500).json({ success: false, error: error.message, stack: error.stack });
+  }
+});
+
+// Database test endpoint
+app.get('/test-db', async (req, res) => {
+  try {
+    const pool = (await import('./config/database.js')).default;
+    const result = await pool.query('SELECT NOW() as current_time');
+    res.json({ success: true, time: result.rows[0].current_time });
+  } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });

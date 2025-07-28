@@ -4,6 +4,44 @@ const createFAQsStructure = async () => {
   try {
     console.log('🔄 Creating FAQs table structure...');
 
+    // 0. Ensure accounts table exists (from multi-tenant migration)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS accounts (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        slug VARCHAR(100) UNIQUE NOT NULL,
+        subscription_tier VARCHAR(50) DEFAULT 'basic',
+        max_properties INTEGER DEFAULT 10,
+        max_contacts INTEGER DEFAULT 100,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Ensure demo account exists
+    const accountCheck = await pool.query('SELECT COUNT(*) FROM accounts');
+    const accountCount = parseInt(accountCheck.rows[0].count);
+
+    let defaultAccountId = 1;
+    if (accountCount === 0) {
+      console.log('🏢 Creating default demo account...');
+      
+      const accountResult = await pool.query(`
+        INSERT INTO accounts (name, slug, max_properties, max_contacts) 
+        VALUES ('Demo Property Management', 'demo', 50, 500) 
+        RETURNING id
+      `);
+      
+      defaultAccountId = accountResult.rows[0].id;
+      console.log(`✅ Demo account created with ID: ${defaultAccountId}`);
+    } else {
+      // Get the first account ID if accounts already exist
+      const firstAccount = await pool.query('SELECT id FROM accounts ORDER BY id LIMIT 1');
+      defaultAccountId = firstAccount.rows[0].id;
+      console.log(`✅ Using existing account ID: ${defaultAccountId}`);
+    }
+
     // 1. Create FAQ categories table first
     await pool.query(`
       CREATE TABLE IF NOT EXISTS faq_categories (

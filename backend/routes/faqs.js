@@ -93,25 +93,16 @@ router.get('/', [
 
     const whereClause = whereConditions.join(' AND ');
 
-    // Main query with JOIN for category details
+    // Simplified query for existing table structure
     const query = `
       SELECT 
         f.*,
-        fc.name as category_name,
-        fc.color as category_color,
-        p.name as property_name,
-        ARRAY_AGG(
-          CASE WHEN ft.name IS NOT NULL 
-          THEN json_build_object('id', ft.id, 'name', ft.name)
-          ELSE NULL END
-        ) FILTER (WHERE ft.name IS NOT NULL) as tags
+        NULL as category_name,
+        NULL as category_color,
+        NULL as property_name,
+        '[]'::json as tags
       FROM faqs f
-      LEFT JOIN faq_categories fc ON f.category_id = fc.id
-      LEFT JOIN properties p ON f.property_id = p.id
-      LEFT JOIN faq_tag_relationships ftr ON f.id = ftr.faq_id
-      LEFT JOIN faq_tags ft ON ftr.tag_id = ft.id
       WHERE ${whereClause}
-      GROUP BY f.id, fc.name, fc.color, p.name
       ORDER BY f.${sort} ${order.toUpperCase()}
       LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}
     `;
@@ -120,14 +111,10 @@ router.get('/', [
 
     const result = await pool.query(query, queryParams);
 
-    // Get total count
+    // Get total count - simplified
     const countQuery = `
-      SELECT COUNT(DISTINCT f.id) as total
+      SELECT COUNT(*) as total
       FROM faqs f
-      LEFT JOIN faq_categories fc ON f.category_id = fc.id
-      LEFT JOIN properties p ON f.property_id = p.id
-      LEFT JOIN faq_tag_relationships ftr ON f.id = ftr.faq_id
-      LEFT JOIN faq_tags ft ON ftr.tag_id = ft.id
       WHERE ${whereClause}
     `;
     

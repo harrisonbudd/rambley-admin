@@ -257,6 +257,69 @@ class ApiService {
     return this.request(`/contacts/by-property/${propertyId}`);
   }
 
+  // FAQs methods
+  async getFAQs(params = {}) {
+    const searchParams = new URLSearchParams();
+    
+    if (params.answer_type) searchParams.append('answer_type', params.answer_type);
+    if (params.category_id) searchParams.append('category_id', params.category_id);
+    if (params.property_id) searchParams.append('property_id', params.property_id);
+    if (params.search) searchParams.append('search', params.search);
+    if (params.page) searchParams.append('page', params.page);
+    if (params.limit) searchParams.append('limit', params.limit);
+    if (params.sort) searchParams.append('sort', params.sort);
+    if (params.order) searchParams.append('order', params.order);
+    
+    const queryString = searchParams.toString();
+    return this.request(`/faqs${queryString ? '?' + queryString : ''}`);
+  }
+
+  async getFAQ(id) {
+    return this.request(`/faqs/${id}`);
+  }
+
+  async createFAQ(faqData) {
+    return this.request('/faqs', {
+      method: 'POST',
+      body: JSON.stringify(faqData),
+    });
+  }
+
+  async updateFAQ(id, faqData) {
+    return this.request(`/faqs/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(faqData),
+    });
+  }
+
+  async deleteFAQ(id) {
+    return this.request(`/faqs/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async recordFAQAsk(id, data = {}) {
+    return this.request(`/faqs/${id}/ask`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getFAQCategories() {
+    return this.request('/faqs/categories/list');
+  }
+
+  async createFAQCategory(categoryData) {
+    return this.request('/faqs/categories', {
+      method: 'POST',
+      body: JSON.stringify(categoryData),
+    });
+  }
+
+  async getFAQTags() {
+    return this.request('/faqs/tags/list');
+  }
+
   // Check if user is authenticated
   isAuthenticated() {
     return !!this.token;

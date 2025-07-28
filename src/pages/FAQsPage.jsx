@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
   HelpCircle,
@@ -19,85 +19,100 @@ import { Badge } from '../components/ui/badge'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { cn } from '../lib/utils'
+import apiService from '../services/api'
 
-const faqs = [
-  { 
-    id: 1, 
-    question: 'What time is check-in?', 
-    answer: 'Check-in times vary by property. Please check your booking confirmation for specific times.',
-    answerType: 'llm', // 'llm', 'host', 'unanswered'
-    askCount: 247,
-    lastAsked: '2024-01-16 10:30 AM',
-    confidence: 95
-  },
-  { 
-    id: 2, 
-    question: 'Where can I park?', 
-    answer: 'Parking information is provided in your check-in instructions, which vary by property.',
-    answerType: 'llm',
-    askCount: 189,
-    lastAsked: '2024-01-16 9:45 AM',
-    confidence: 88
-  },
-  { 
-    id: 3, 
-    question: 'What is the WiFi password?', 
-    answer: 'WiFi credentials are provided in your welcome message and check-in instructions.',
-    answerType: 'host',
-    askCount: 156,
-    lastAsked: '2024-01-16 11:15 AM',
-    confidence: null
-  },
-  { 
-    id: 4, 
-    question: 'How do I access the pool area?', 
-    answer: '',
-    answerType: 'unanswered',
-    askCount: 23,
-    lastAsked: '2024-01-16 8:30 AM',
-    confidence: null
-  },
-  { 
-    id: 5, 
-    question: 'What are the quiet hours?', 
-    answer: 'Quiet hours are typically from 10 PM to 8 AM, but please check your property-specific house rules as this may vary.',
-    answerType: 'host',
-    askCount: 67,
-    lastAsked: '2024-01-15 11:45 PM',
-    confidence: null
-  },
-  { 
-    id: 6, 
-    question: 'Can I bring pets?', 
-    answer: '',
-    answerType: 'unanswered',
-    askCount: 45,
-    lastAsked: '2024-01-16 7:20 AM',
-    confidence: null
-  }
-]
 
 export default function FAQsPage() {
+  const [faqs, setFaqs] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [editingFaq, setEditingFaq] = useState(null)
   const [answerDraft, setAnswerDraft] = useState('')
   const [selectedFilter, setSelectedFilter] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  // Load FAQs from API
+  useEffect(() => {
+    loadFAQs()
+  }, [selectedFilter, searchTerm])
+
+  const loadFAQs = async () => {
+    try {
+      setLoading(true)
+      const params = {
+        sort: 'ask_count',
+        order: 'desc'
+      }
+      
+      if (selectedFilter !== 'all') {
+        params.answer_type = selectedFilter
+      }
+      
+      if (searchTerm.trim()) {
+        params.search = searchTerm.trim()
+      }
+      
+      const response = await apiService.getFAQs(params)
+      setFaqs(response.faqs || [])
+      setError(null)
+    } catch (err) {
+      console.error('Error loading FAQs:', err)
+      setError('Failed to load FAQs. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleStartAnswering = (faq) => {
     setEditingFaq(faq.id)
     setAnswerDraft(faq.answer || '')
   }
 
-  const handleSaveAnswer = (faqId) => {
-    // Here you would save the answer to the backend
-    console.log('Saving answer for FAQ', faqId, answerDraft)
-    setEditingFaq(null)
-    setAnswerDraft('')
+  const handleSaveAnswer = async (faqId) => {
+    if (!answerDraft.trim()) return
+    
+    try {
+      setSaving(true)
+      const faq = faqs.find(f => f.id === faqId)
+      
+      await apiService.updateFAQ(faqId, {
+        question: faq.question,
+        answer: answerDraft.trim(),
+        answer_type: 'host',
+        category_id: faq.category_id,
+        property_id: faq.property_id,
+        tags: faq.tags || []
+      })
+      
+      // Reload FAQs to get updated data
+      await loadFAQs()
+      
+      setEditingFaq(null)
+      setAnswerDraft('')
+    } catch (err) {
+      console.error('Error saving answer:', err)
+      setError('Failed to save answer. Please try again.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleCancelAnswering = () => {
     setEditingFaq(null)
     setAnswerDraft('')
+  }
+
+  const handleDeleteFAQ = async (faqId) => {
+    if (!confirm('Are you sure you want to delete this FAQ?')) return
+    
+    try {
+      await apiService.deleteFAQ(faqId)
+      await loadFAQs()
+    } catch (err) {
+      console.error('Error deleting FAQ:', err)
+      setError('Failed to delete FAQ. Please try again.')
+    }
   }
 
   const getAnswerTypeInfo = (answerType) => {
@@ -133,29 +148,50 @@ export default function FAQsPage() {
     }
   }
 
-  const filteredFaqs = faqs.filter(faq => {
-    // Answer type filter
-    const typeMatch = selectedFilter === 'all' || faq.answerType === selectedFilter
-    
-    // Search filter
-    const searchMatch = !searchTerm.trim() || 
-      faq.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (faq.answer && faq.answer.toLowerCase().includes(searchTerm.toLowerCase()))
-
-    return typeMatch && searchMatch
-  })
-
   const getFaqCounts = () => {
     return {
       all: faqs.length,
-      llm: faqs.filter(f => f.answerType === 'llm').length,
-      host: faqs.filter(f => f.answerType === 'host').length,
-      unanswered: faqs.filter(f => f.answerType === 'unanswered').length,
+      llm: faqs.filter(f => f.answer_type === 'llm').length,
+      host: faqs.filter(f => f.answer_type === 'host').length,
+      unanswered: faqs.filter(f => f.answer_type === 'unanswered').length,
     }
   }
 
   const counts = getFaqCounts()
-  const sortedFaqs = [...filteredFaqs].sort((a, b) => b.askCount - a.askCount)
+  
+  // Format last_asked timestamp
+  const formatLastAsked = (timestamp) => {
+    if (!timestamp) return 'Never'
+    return new Date(timestamp).toLocaleString()
+  }
+  
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="p-4 sm:p-6">
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-purple mx-auto"></div>
+          <p className="mt-2 text-brand-mid-gray">Loading FAQs...</p>
+        </div>
+      </div>
+    )
+  }
+  
+  // Show error state
+  if (error) {
+    return (
+      <div className="p-4 sm:p-6">
+        <Card>
+          <CardContent className="p-8 text-center">
+            <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+            <h3 className="text-lg font-medium text-brand-dark mb-2">Error Loading FAQs</h3>
+            <p className="text-brand-mid-gray mb-4">{error}</p>
+            <Button onClick={loadFAQs}>Try Again</Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="p-4 sm:p-6">
@@ -229,7 +265,7 @@ export default function FAQsPage() {
 
         {/* FAQs List */}
         <div className="space-y-4">
-          {sortedFaqs.length === 0 ? (
+          {faqs.length === 0 ? (
             <Card>
               <CardContent className="p-8 text-center">
                 <HelpCircle className="mx-auto h-12 w-12 text-brand-mid-gray mb-4" />
@@ -256,14 +292,14 @@ export default function FAQsPage() {
               </div>
               
               <div className="grid gap-4">
-                {sortedFaqs.map((faq, index) => {
-                  const typeInfo = getAnswerTypeInfo(faq.answerType)
+                {faqs.map((faq, index) => {
+                  const typeInfo = getAnswerTypeInfo(faq.answer_type)
                   const Icon = typeInfo.icon
                   const isEditing = editingFaq === faq.id
                   
                   return (
                     <Card key={faq.id} className={`${
-                      faq.answerType === 'unanswered' ? 'border-red-200 bg-red-50/30' : ''
+                      faq.answer_type === 'unanswered' ? 'border-red-200 bg-red-50/30' : ''
                     }`}>
                       <CardContent className="p-6">
                         <div className="space-y-4">
@@ -285,7 +321,7 @@ export default function FAQsPage() {
                                   
                                   <div className="flex items-center gap-1 text-sm text-brand-mid-gray">
                                     <TrendingUp className="h-3 w-3 flex-shrink-0" />
-                                    <span className="whitespace-nowrap">Asked {faq.askCount} times</span>
+                                    <span className="whitespace-nowrap">Asked {faq.ask_count || 0} times</span>
                                   </div>
                                   
                                   {faq.confidence && (
@@ -296,7 +332,7 @@ export default function FAQsPage() {
                                 </div>
                                 
                                 <p className="text-xs text-brand-mid-gray mb-3 break-words">
-                                  Last asked: {faq.lastAsked}
+                                  Last asked: {formatLastAsked(faq.last_asked)}
                                 </p>
                               </div>
                             </div>
@@ -305,7 +341,12 @@ export default function FAQsPage() {
                               <Button size="sm" variant="outline" className="h-8 w-8 p-0">
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="h-8 w-8 p-0"
+                                onClick={() => handleDeleteFAQ(faq.id)}
+                              >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
@@ -313,7 +354,7 @@ export default function FAQsPage() {
 
                           {/* Answer Section */}
                           <div className="pl-0 sm:pl-9 mt-4">
-                            {faq.answerType === 'unanswered' ? (
+                            {faq.answer_type === 'unanswered' ? (
                               // Unanswered - Show input or current answer
                               <div className="space-y-3">
                                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -340,9 +381,14 @@ export default function FAQsPage() {
                                       />
                                     </div>
                                     <div className="flex flex-col sm:flex-row gap-2">
-                                      <Button size="sm" onClick={() => handleSaveAnswer(faq.id)} className="w-full sm:w-auto">
+                                      <Button 
+                                        size="sm" 
+                                        onClick={() => handleSaveAnswer(faq.id)} 
+                                        className="w-full sm:w-auto"
+                                        disabled={saving || !answerDraft.trim()}
+                                      >
                                         <Save className="mr-2 h-4 w-4" />
-                                        Save Answer
+                                        {saving ? 'Saving...' : 'Save Answer'}
                                       </Button>
                                       <Button size="sm" variant="outline" onClick={handleCancelAnswering} className="w-full sm:w-auto">
                                         <X className="mr-2 h-4 w-4" />

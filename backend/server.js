@@ -9,6 +9,7 @@ import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
 import contactRoutes from './routes/contacts.js';
 import propertyRoutes from './routes/properties.js';
+import faqRoutes from './routes/faqs.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { authenticateToken } from './middleware/auth.js';
 
@@ -56,6 +57,7 @@ app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', authenticateToken, userRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/properties', propertyRoutes);
+app.use('/api/faqs', faqRoutes);
 
 // Error handling
 app.use(errorHandler);

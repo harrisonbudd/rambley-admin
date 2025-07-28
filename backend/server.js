@@ -52,67 +52,6 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Temporary migration endpoint - REMOVE AFTER USE
-app.get('/migrate-faqs', async (req, res) => {
-  try {
-    const pool = (await import('./config/database.js')).default;
-    
-    // Simple test first
-    console.log('Testing basic FAQ table creation...');
-    
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS accounts (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        slug VARCHAR(100) UNIQUE NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    
-    await pool.query(`
-      INSERT INTO accounts (name, slug) 
-      VALUES ('Demo Property Management', 'demo') 
-      ON CONFLICT (slug) DO NOTHING
-    `);
-    
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS faq_categories (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(100) NOT NULL,
-        account_id INTEGER REFERENCES accounts(id) ON DELETE CASCADE,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS faqs (
-        id SERIAL PRIMARY KEY,
-        question TEXT NOT NULL,
-        answer TEXT,
-        answer_type VARCHAR(20) DEFAULT 'unanswered',
-        ask_count INTEGER DEFAULT 0,
-        account_id INTEGER REFERENCES accounts(id) ON DELETE CASCADE,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    
-    res.json({ success: true, message: 'Basic FAQ tables created successfully!' });
-  } catch (error) {
-    console.error('Migration error:', error);
-    res.status(500).json({ success: false, error: error.message, stack: error.stack });
-  }
-});
-
-// Database test endpoint
-app.get('/test-db', async (req, res) => {
-  try {
-    const pool = (await import('./config/database.js')).default;
-    const result = await pool.query('SELECT NOW() as current_time');
-    res.json({ success: true, time: result.rows[0].current_time });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
 
 // Routes
 app.use('/api/auth', authLimiter, authRoutes);

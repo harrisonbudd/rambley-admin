@@ -125,12 +125,6 @@ export default function Layout({ children }) {
             {/* Logo */}
             <div className="flex h-16 items-center px-6 border-b border-brand-mid-gray/20">
               <h1 className="text-xl font-bold text-white">Rambley</h1>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                className="md:hidden ml-auto text-brand-light-gray hover:text-white"
-              >
-                <X className="h-6 w-6" />
-              </button>
             </div>
             
             {/* Navigation */}

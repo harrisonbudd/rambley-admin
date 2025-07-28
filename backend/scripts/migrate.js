@@ -2,6 +2,7 @@ import pool from '../config/database.js';
 import bcrypt from 'bcryptjs';
 import createContactsTables from './contacts-migration.js';
 import createMultiTenantStructure from './multi-tenant-migration.js';
+import { addPropertyFields } from './properties-fields-migration.js';
 
 const runMigrations = async () => {
   try {
@@ -71,6 +72,9 @@ const runMigrations = async () => {
 
     // Run multi-tenant migration
     await createMultiTenantStructure();
+
+    // Add missing property fields
+    await addPropertyFields();
 
     console.log('🎉 Database migrations completed successfully!');
     

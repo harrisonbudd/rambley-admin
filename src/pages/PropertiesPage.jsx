@@ -28,6 +28,9 @@ export default function PropertiesPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [editingProperty, setEditingProperty] = useState(false)
+  const [editForm, setEditForm] = useState({})
+  const [errors, setErrors] = useState({})
   const [newProperty, setNewProperty] = useState({
     name: '',
     address: '',
@@ -143,6 +146,85 @@ export default function PropertiesPage() {
     setNewProperty(prev => ({ ...prev, [field]: value }))
   }
 
+  const startEditingProperty = (property) => {
+    setEditingProperty(true)
+    setEditForm({
+      name: property.name || '',
+      address: property.address || '',
+      description: property.description || '',
+      property_type: property.property_type || property.type || '',
+      bedrooms: property.bedrooms || 0,
+      bathrooms: property.bathrooms || 0,
+      max_guests: property.max_guests || property.maxGuests || 1,
+      checkin_time: property.checkin_time || property.checkinTime || '3:00 PM',
+      checkout_time: property.checkout_time || property.checkoutTime || '11:00 AM',
+      wifi_name: property.wifi_name || property.wifiName || '',
+      wifi_password: property.wifi_password || property.wifiPassword || '',
+      emergency_contact: property.emergency_contact || property.emergencyContact || '',
+      instructions: property.instructions || '',
+      house_rules: property.house_rules || property.houseRules || ''
+    })
+    setErrors({})
+  }
+
+  const cancelEditingProperty = () => {
+    setEditingProperty(false)
+    setEditForm({})
+    setErrors({})
+  }
+
+  const updateEditForm = (field, value) => {
+    setEditForm(prev => ({ ...prev, [field]: value }))
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }))
+    }
+  }
+
+  const validatePropertyForm = () => {
+    const newErrors = {}
+    
+    if (!editForm.name?.trim()) {
+      newErrors.name = 'Property name is required'
+    }
+    
+    if (!editForm.address?.trim()) {
+      newErrors.address = 'Address is required'
+    }
+    
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const savePropertyChanges = async () => {
+    if (!validatePropertyForm()) return
+    
+    try {
+      setLoading(true)
+      
+      const updatedProperty = await contactsService.updateProperty(selectedProperty.id, editForm)
+      
+      // Update the properties list
+      setProperties(prev => 
+        prev.map(property => 
+          property.id === selectedProperty.id ? updatedProperty : property
+        )
+      )
+      
+      // Update selected property
+      setSelectedProperty(updatedProperty)
+      setEditingProperty(false)
+      setEditForm({})
+      setErrors({})
+      showSuccess('Property updated successfully!')
+      
+    } catch (err) {
+      console.error('Error updating property:', err)
+      showError(err.message || 'Failed to update property')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // Refresh button
   const RefreshButton = () => (
     <Button
@@ -163,14 +245,41 @@ export default function PropertiesPage() {
         <Button 
           variant="ghost" 
           size="sm"
-          onClick={() => setSelectedProperty(null)}
+          onClick={() => {
+            setSelectedProperty(null)
+            setEditingProperty(false)
+            setEditForm({})
+            setErrors({})
+          }}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Properties
         </Button>
-        <div>
+        <div className="flex-1">
           <h3 className="text-lg font-semibold text-brand-dark">{selectedProperty.name}</h3>
           <p className="text-brand-mid-gray">{selectedProperty.address}</p>
+        </div>
+        <div className="flex gap-2">
+          {!editingProperty ? (
+            <Button onClick={() => startEditingProperty(selectedProperty)}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit Property
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" onClick={cancelEditingProperty} disabled={loading}>
+                Cancel
+              </Button>
+              <Button onClick={savePropertyChanges} disabled={loading}>
+                {loading ? (
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
+                Save Changes
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -184,44 +293,147 @@ export default function PropertiesPage() {
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="property-name">Property Name</Label>
-            <Input id="property-name" defaultValue={selectedProperty.name} />
+            <Label htmlFor="property-name">Property Name *</Label>
+            <Input 
+              id="property-name" 
+              value={editingProperty ? editForm.name : selectedProperty.name || ''}
+              onChange={(e) => updateEditForm('name', e.target.value)}
+              disabled={!editingProperty}
+              className={errors.name ? 'border-red-500' : ''}
+            />
+            {errors.name && (
+              <p className="text-sm text-red-500 mt-1">{errors.name}</p>
+            )}
           </div>
           <div>
-            <Label htmlFor="property-address">Address</Label>
-            <Input id="property-address" defaultValue={selectedProperty.address} />
+            <Label htmlFor="property-address">Address *</Label>
+            <Input 
+              id="property-address" 
+              value={editingProperty ? editForm.address : selectedProperty.address || ''}
+              onChange={(e) => updateEditForm('address', e.target.value)}
+              disabled={!editingProperty}
+              className={errors.address ? 'border-red-500' : ''}
+            />
+            {errors.address && (
+              <p className="text-sm text-red-500 mt-1">{errors.address}</p>
+            )}
+          </div>
+          <div>
+            <Label htmlFor="property-type">Property Type</Label>
+            <select
+              id="property-type"
+              value={editingProperty ? editForm.property_type : selectedProperty.property_type || selectedProperty.type || ''}
+              onChange={(e) => updateEditForm('property_type', e.target.value)}
+              disabled={!editingProperty}
+              className="w-full h-10 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple disabled:bg-gray-50"
+            >
+              <option value="">Select Type</option>
+              <option value="villa">Villa</option>
+              <option value="apartment">Apartment</option>
+              <option value="house">House</option>
+              <option value="condo">Condo</option>
+              <option value="cabin">Cabin</option>
+            </select>
+          </div>
+          <div>
+            <Label htmlFor="description">Description</Label>
+            <Input 
+              id="description" 
+              value={editingProperty ? editForm.description : selectedProperty.description || ''}
+              onChange={(e) => updateEditForm('description', e.target.value)}
+              disabled={!editingProperty}
+            />
+          </div>
+          <div>
+            <Label htmlFor="bedrooms">Bedrooms</Label>
+            <Input 
+              id="bedrooms" 
+              type="number"
+              min="0"
+              value={editingProperty ? editForm.bedrooms : selectedProperty.bedrooms || 0}
+              onChange={(e) => updateEditForm('bedrooms', parseInt(e.target.value) || 0)}
+              disabled={!editingProperty}
+            />
+          </div>
+          <div>
+            <Label htmlFor="bathrooms">Bathrooms</Label>
+            <Input 
+              id="bathrooms" 
+              type="number"
+              min="0"
+              step="0.5"
+              value={editingProperty ? editForm.bathrooms : selectedProperty.bathrooms || 0}
+              onChange={(e) => updateEditForm('bathrooms', parseFloat(e.target.value) || 0)}
+              disabled={!editingProperty}
+            />
+          </div>
+          <div>
+            <Label htmlFor="max-guests">Max Guests</Label>
+            <Input 
+              id="max-guests" 
+              type="number"
+              min="1"
+              value={editingProperty ? editForm.max_guests : selectedProperty.max_guests || selectedProperty.maxGuests || 1}
+              onChange={(e) => updateEditForm('max_guests', parseInt(e.target.value) || 1)}
+              disabled={!editingProperty}
+            />
           </div>
           <div>
             <Label htmlFor="checkin-time">Check-in Time</Label>
-            <Input id="checkin-time" defaultValue={selectedProperty.checkinTime} />
+            <Input 
+              id="checkin-time" 
+              value={editingProperty ? editForm.checkin_time : selectedProperty.checkin_time || selectedProperty.checkinTime || '3:00 PM'}
+              onChange={(e) => updateEditForm('checkin_time', e.target.value)}
+              disabled={!editingProperty}
+            />
           </div>
           <div>
             <Label htmlFor="checkout-time">Check-out Time</Label>
-            <Input id="checkout-time" defaultValue={selectedProperty.checkoutTime} />
+            <Input 
+              id="checkout-time" 
+              value={editingProperty ? editForm.checkout_time : selectedProperty.checkout_time || selectedProperty.checkoutTime || '11:00 AM'}
+              onChange={(e) => updateEditForm('checkout_time', e.target.value)}
+              disabled={!editingProperty}
+            />
           </div>
         </CardContent>
       </Card>
 
-      {/* Access Information */}
+      {/* Access & WiFi */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Key className="h-5 w-5" />
+            <Shield className="h-5 w-5" />
             Access & WiFi
           </CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="wifi-name">WiFi Network Name</Label>
-            <Input id="wifi-name" defaultValue={selectedProperty.wifiName} />
+            <Input 
+              id="wifi-name" 
+              value={editingProperty ? editForm.wifi_name : selectedProperty.wifi_name || selectedProperty.wifiName || ''}
+              onChange={(e) => updateEditForm('wifi_name', e.target.value)}
+              disabled={!editingProperty}
+            />
           </div>
           <div>
             <Label htmlFor="wifi-password">WiFi Password</Label>
-            <Input id="wifi-password" defaultValue={selectedProperty.wifiPassword} />
+            <Input 
+              id="wifi-password" 
+              value={editingProperty ? editForm.wifi_password : selectedProperty.wifi_password || selectedProperty.wifiPassword || ''}
+              onChange={(e) => updateEditForm('wifi_password', e.target.value)}
+              disabled={!editingProperty}
+            />
           </div>
           <div className="md:col-span-2">
             <Label htmlFor="emergency-contact">Emergency Contact</Label>
-            <Input id="emergency-contact" defaultValue={selectedProperty.emergencyContact} />
+            <Input 
+              id="emergency-contact" 
+              value={editingProperty ? editForm.emergency_contact : selectedProperty.emergency_contact || selectedProperty.emergencyContact || ''}
+              onChange={(e) => updateEditForm('emergency_contact', e.target.value)}
+              disabled={!editingProperty}
+            />
           </div>
         </CardContent>
       </Card>
@@ -238,13 +450,12 @@ export default function PropertiesPage() {
           <Label htmlFor="instructions">Instructions</Label>
           <textarea 
             id="instructions"
-            className="w-full h-32 px-3 py-2 border border-input rounded-md text-sm mt-2"
-            defaultValue={selectedProperty.instructions}
+            className="w-full h-32 px-3 py-2 border border-input rounded-md text-sm mt-2 disabled:bg-gray-50"
+            value={editingProperty ? editForm.instructions : selectedProperty.instructions || ''}
+            onChange={(e) => updateEditForm('instructions', e.target.value)}
+            disabled={!editingProperty}
+            placeholder="Enter detailed check-in instructions for guests..."
           />
-          <Button className="mt-4">
-            <Save className="mr-2 h-4 w-4" />
-            Save Instructions
-          </Button>
         </CardContent>
       </Card>
 
@@ -260,13 +471,12 @@ export default function PropertiesPage() {
           <Label htmlFor="house-rules">Rules</Label>
           <textarea 
             id="house-rules"
-            className="w-full h-32 px-3 py-2 border border-input rounded-md text-sm mt-2"
-            defaultValue={selectedProperty.houseRules}
+            className="w-full h-32 px-3 py-2 border border-input rounded-md text-sm mt-2 disabled:bg-gray-50"
+            value={editingProperty ? editForm.house_rules : selectedProperty.house_rules || selectedProperty.houseRules || ''}
+            onChange={(e) => updateEditForm('house_rules', e.target.value)}
+            disabled={!editingProperty}
+            placeholder="Enter house rules (e.g., • No smoking inside&#10;• Quiet hours: 10 PM - 8 AM)"
           />
-          <Button className="mt-4">
-            <Save className="mr-2 h-4 w-4" />
-            Save Rules
-          </Button>
         </CardContent>
       </Card>
     </div>
@@ -334,7 +544,10 @@ export default function PropertiesPage() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setSelectedProperty(property)}>
+                    <Button size="sm" variant="outline" onClick={() => {
+                      setSelectedProperty(property)
+                      startEditingProperty(property)
+                    }}>
                       <Edit className="h-4 w-4" />
                     </Button>
                     <Button 

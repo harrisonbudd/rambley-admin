@@ -14,7 +14,18 @@ router.use(setAccountContext);
 const propertyValidation = [
   body('name').trim().notEmpty().withMessage('Property name is required'),
   body('address').optional().trim(),
-  body('description').optional().trim()
+  body('description').optional().trim(),
+  body('property_type').optional().trim(),
+  body('bedrooms').optional().isInt({ min: 0 }).withMessage('Bedrooms must be a non-negative integer'),
+  body('bathrooms').optional().isFloat({ min: 0 }).withMessage('Bathrooms must be a non-negative number'),
+  body('max_guests').optional().isInt({ min: 1 }).withMessage('Max guests must be at least 1'),
+  body('checkin_time').optional().trim(),
+  body('checkout_time').optional().trim(),
+  body('wifi_name').optional().trim(),
+  body('wifi_password').optional().trim(),
+  body('emergency_contact').optional().trim(),
+  body('instructions').optional().trim(),
+  body('house_rules').optional().trim()
 ];
 
 // GET /api/properties - List all properties
@@ -136,7 +147,22 @@ router.post('/', propertyValidation, async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, address, description } = req.body;
+    const { 
+      name, 
+      address, 
+      description,
+      property_type,
+      bedrooms = 0,
+      bathrooms = 0,
+      max_guests = 1,
+      checkin_time = '3:00 PM',
+      checkout_time = '11:00 AM',
+      wifi_name,
+      wifi_password,
+      emergency_contact,
+      instructions,
+      house_rules
+    } = req.body;
 
     // Check if property name already exists
     const nameCheck = await pool.query('SELECT id FROM properties WHERE name = $1', [name]);
@@ -145,8 +171,12 @@ router.post('/', propertyValidation, async (req, res) => {
     }
 
     const query = `
-      INSERT INTO properties (name, address, description, account_id)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO properties (
+        name, address, description, property_type, bedrooms, bathrooms, max_guests,
+        checkin_time, checkout_time, wifi_name, wifi_password, emergency_contact,
+        instructions, house_rules, account_id
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING *,
         CASE 
           WHEN is_active = true THEN 'active'
@@ -154,7 +184,11 @@ router.post('/', propertyValidation, async (req, res) => {
         END as status
     `;
 
-    const result = await pool.query(query, [name, address, description, req.user.accountId]);
+    const result = await pool.query(query, [
+      name, address, description, property_type, bedrooms, bathrooms, max_guests,
+      checkin_time, checkout_time, wifi_name, wifi_password, emergency_contact,
+      instructions, house_rules, req.user.accountId
+    ]);
 
     res.status(201).json(result.rows[0]);
 
@@ -173,7 +207,22 @@ router.put('/:id', propertyValidation, async (req, res) => {
     }
 
     const { id } = req.params;
-    const { name, address, description } = req.body;
+    const { 
+      name, 
+      address, 
+      description,
+      property_type,
+      bedrooms = 0,
+      bathrooms = 0,
+      max_guests = 1,
+      checkin_time = '3:00 PM',
+      checkout_time = '11:00 AM',
+      wifi_name,
+      wifi_password,
+      emergency_contact,
+      instructions,
+      house_rules
+    } = req.body;
 
     // Check if property exists
     const propertyCheck = await pool.query('SELECT id FROM properties WHERE id = $1 AND is_active = true', [id]);
@@ -189,8 +238,12 @@ router.put('/:id', propertyValidation, async (req, res) => {
 
     const query = `
       UPDATE properties 
-      SET name = $1, address = $2, description = $3, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $4
+      SET name = $1, address = $2, description = $3, property_type = $4,
+          bedrooms = $5, bathrooms = $6, max_guests = $7,
+          checkin_time = $8, checkout_time = $9, wifi_name = $10, wifi_password = $11,
+          emergency_contact = $12, instructions = $13, house_rules = $14,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $15
       RETURNING *,
         CASE 
           WHEN is_active = true THEN 'active'
@@ -198,7 +251,11 @@ router.put('/:id', propertyValidation, async (req, res) => {
         END as status
     `;
 
-    const result = await pool.query(query, [name, address, description, id]);
+    const result = await pool.query(query, [
+      name, address, description, property_type, bedrooms, bathrooms, max_guests,
+      checkin_time, checkout_time, wifi_name, wifi_password, emergency_contact,
+      instructions, house_rules, id
+    ]);
 
     res.json(result.rows[0]);
 

@@ -52,6 +52,18 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Temporary migration endpoint - REMOVE AFTER USE
+app.get('/migrate-faqs', async (req, res) => {
+  try {
+    const { default: createFAQsStructure } = await import('./scripts/faqs-migration.js');
+    await createFAQsStructure();
+    res.json({ success: true, message: 'FAQ migration completed successfully!' });
+  } catch (error) {
+    console.error('Migration error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Routes
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', authenticateToken, userRoutes);

@@ -52,7 +52,11 @@ router.get('/', [
 
     // Main query
     const query = `
-      SELECT *
+      SELECT *,
+        CASE 
+          WHEN is_active = true THEN 'active'
+          ELSE 'inactive'
+        END as status
       FROM properties
       WHERE ${whereClause}
       ORDER BY name
@@ -96,6 +100,10 @@ router.get('/:id', async (req, res) => {
 
     const query = `
       SELECT p.*,
+      CASE 
+        WHEN p.is_active = true THEN 'active'
+        ELSE 'inactive'
+      END as status,
       (
         SELECT COUNT(*)
         FROM contact_service_locations csl
@@ -139,7 +147,11 @@ router.post('/', propertyValidation, async (req, res) => {
     const query = `
       INSERT INTO properties (name, address, description, account_id)
       VALUES ($1, $2, $3, $4)
-      RETURNING *
+      RETURNING *,
+        CASE 
+          WHEN is_active = true THEN 'active'
+          ELSE 'inactive'
+        END as status
     `;
 
     const result = await pool.query(query, [name, address, description, req.user.accountId]);
@@ -179,7 +191,11 @@ router.put('/:id', propertyValidation, async (req, res) => {
       UPDATE properties 
       SET name = $1, address = $2, description = $3, updated_at = CURRENT_TIMESTAMP
       WHERE id = $4
-      RETURNING *
+      RETURNING *,
+        CASE 
+          WHEN is_active = true THEN 'active'
+          ELSE 'inactive'
+        END as status
     `;
 
     const result = await pool.query(query, [name, address, description, id]);

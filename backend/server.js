@@ -52,6 +52,21 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Debug FAQ routes - TEMPORARY
+app.get('/debug-faqs', async (req, res) => {
+  try {
+    const pool = (await import('./config/database.js')).default;
+    const result = await pool.query('SELECT COUNT(*) as faq_count FROM faqs');
+    res.json({ 
+      success: true, 
+      faq_count: result.rows[0].faq_count,
+      tables_exist: true 
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 
 // Routes
 app.use('/api/auth', authLimiter, authRoutes);

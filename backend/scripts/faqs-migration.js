@@ -4,7 +4,9 @@ const createFAQsStructure = async () => {
   try {
     console.log('🔄 Creating FAQs table structure...');
 
-    // 0. Ensure accounts table exists (from multi-tenant migration)
+    // 0. Ensure required tables exist
+    
+    // Create accounts table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS accounts (
         id SERIAL PRIMARY KEY,
@@ -14,6 +16,36 @@ const createFAQsStructure = async () => {
         max_properties INTEGER DEFAULT 10,
         max_contacts INTEGER DEFAULT 100,
         is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Create users table (simplified version)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        first_name VARCHAR(100),
+        last_name VARCHAR(100),
+        role VARCHAR(50) DEFAULT 'user',
+        is_active BOOLEAN DEFAULT true,
+        account_id INTEGER REFERENCES accounts(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Create properties table (simplified version)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS properties (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        address TEXT,
+        description TEXT,
+        is_active BOOLEAN DEFAULT true,
+        account_id INTEGER REFERENCES accounts(id) ON DELETE CASCADE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )

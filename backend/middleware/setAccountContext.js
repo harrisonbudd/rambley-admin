@@ -7,9 +7,21 @@ import pool from '../config/database.js';
 export const setAccountContext = async (req, res, next) => {
   try {
     // Only set context if user is authenticated
-    if (req.user && req.user.accountId) {
+    if (req.user && req.user.userId) {
+      // Get account_id from user if available, otherwise use default account
+      let accountId = req.user.accountId;
+      
+      if (!accountId) {
+        // Fallback: get the first account from database
+        const defaultAccount = await pool.query('SELECT id FROM accounts ORDER BY id LIMIT 1');
+        accountId = defaultAccount.rows[0]?.id || 1;
+        
+        // Cache the accountId in the request user object
+        req.user.accountId = accountId;
+      }
+      
       // Set both account_id and user_id for RLS policies
-      await pool.query('SELECT set_config($1, $2, true)', ['app.current_account_id', req.user.accountId.toString()]);
+      await pool.query('SELECT set_config($1, $2, true)', ['app.current_account_id', accountId.toString()]);
       await pool.query('SELECT set_config($1, $2, true)', ['app.current_user_id', req.user.userId.toString()]);
     }
     next();

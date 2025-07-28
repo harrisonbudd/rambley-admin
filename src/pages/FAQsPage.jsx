@@ -455,8 +455,8 @@ export default function FAQsPage() {
 
         {/* Add FAQ Modal */}
         {showAddModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md relative">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold text-brand-dark">Add New FAQ</h2>
                 <Button 
@@ -466,6 +466,7 @@ export default function FAQsPage() {
                     setShowAddModal(false)
                     setNewFaq({ question: '', answer: '', answer_type: 'unanswered' })
                   }}
+                  className="absolute top-4 right-4 h-8 w-8 p-0 hover:bg-gray-100"
                 >
                   <X className="h-4 w-4" />
                 </Button>

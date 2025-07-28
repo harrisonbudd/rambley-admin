@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
   MapPin, 
@@ -10,7 +10,8 @@ import {
   Clock,
   Key,
   Shield,
-  X
+  X,
+  RefreshCw
 } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
@@ -18,58 +19,22 @@ import { Label } from '../components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { useNotification } from '../contexts/NotificationContext'
+import contactsService from '../services/contactsService'
 import AddPropertyModal from '../components/AddPropertyModal'
 
-// Mock data with expanded property information
-const initialProperties = [
-  { 
-    id: 1, 
-    name: 'Sunset Villa', 
-    address: '123 Ocean Drive, Malibu, CA', 
-    status: 'active',
-    checkinTime: '3:00 PM',
-    checkoutTime: '11:00 AM',
-    instructions: 'Welcome to Sunset Villa! Your keyless entry code is provided 24 hours before check-in. Please park in the driveway and enter through the front door. The garage code is 1234 if you prefer covered parking.',
-    houseRules: '• No smoking inside the property\n• No pets allowed\n• Quiet hours: 10 PM - 8 AM\n• Maximum occupancy: 6 guests\n• Please remove shoes when entering',
-    wifiName: 'SunsetVilla_Guest',
-    wifiPassword: 'Ocean2024!',
-    emergencyContact: '+1 (555) 911-HELP'
-  },
-  { 
-    id: 2, 
-    name: 'Mountain Retreat', 
-    address: '456 Pine Ridge, Aspen, CO', 
-    status: 'active',
-    checkinTime: '4:00 PM',
-    checkoutTime: '10:00 AM',
-    instructions: 'Welcome to Mountain Retreat! Check-in is at the main lodge. Pick up your keys and trail maps at the front desk. Parking is available in the gravel lot.',
-    houseRules: '• No smoking anywhere on property\n• Pets welcome with $50 fee\n• Quiet hours: 9 PM - 7 AM\n• Maximum occupancy: 8 guests\n• Please keep doors locked due to wildlife',
-    wifiName: 'MountainRetreat',
-    wifiPassword: 'Alpine2024',
-    emergencyContact: '+1 (555) mountain'
-  },
-  { 
-    id: 3, 
-    name: 'Beach House', 
-    address: '789 Coastal Way, Miami, FL', 
-    status: 'maintenance',
-    checkinTime: '3:00 PM',
-    checkoutTime: '11:00 AM',
-    instructions: 'Beach House is currently under maintenance. New check-in instructions will be provided once renovations are complete.',
-    houseRules: '• No smoking inside\n• No glass on the beach\n• Rinse sand off before entering\n• Maximum occupancy: 4 guests',
-    wifiName: 'BeachHouse_WiFi',
-    wifiPassword: 'Ocean123',
-    emergencyContact: '+1 (555) beach-help'
-  },
-]
-
 export default function PropertiesPage() {
-  const [properties, setProperties] = useState(initialProperties)
+  const [properties, setProperties] = useState([])
   const [selectedProperty, setSelectedProperty] = useState(null)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [newProperty, setNewProperty] = useState({
     name: '',
     address: '',
+    type: '',
+    bedrooms: 0,
+    bathrooms: 0,
+    maxGuests: 1,
     checkinTime: '3:00 PM',
     checkoutTime: '11:00 AM',
     instructions: '',
@@ -79,39 +44,118 @@ export default function PropertiesPage() {
     emergencyContact: '',
     status: 'active'
   })
-  const { showWarning, showSuccess } = useNotification()
+  const { showWarning, showSuccess, showError } = useNotification()
 
-  const handleAddProperty = () => {
+  // Load data on component mount
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  const loadData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const response = await contactsService.getProperties()
+      setProperties(response.properties || response)
+      
+    } catch (err) {
+      console.error('Error loading properties:', err)
+      setError(err.message || 'Failed to load properties')
+      showError('Failed to load properties')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAddProperty = async () => {
     if (!newProperty.name.trim() || !newProperty.address.trim()) {
       showWarning('Please fill in at least the property name and address.')
       return
     }
 
-    const property = {
-      ...newProperty,
-      id: Math.max(...properties.map(p => p.id)) + 1
+    try {
+      setLoading(true)
+      
+      const createdProperty = await contactsService.createProperty(newProperty)
+      
+      // Update the properties list
+      setProperties(prev => [...prev, createdProperty])
+      
+      // Reset form and close modal
+      setShowAddModal(false)
+      setNewProperty({
+        name: '',
+        address: '',
+        type: '',
+        bedrooms: 0,
+        bathrooms: 0,
+        maxGuests: 1,
+        checkinTime: '3:00 PM',
+        checkoutTime: '11:00 AM',
+        instructions: '',
+        houseRules: '',
+        wifiName: '',
+        wifiPassword: '',
+        emergencyContact: '',
+        status: 'active'
+      })
+      
+      showSuccess('Property added successfully!')
+      
+    } catch (err) {
+      console.error('Error adding property:', err)
+      showError(err.message || 'Failed to add property')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDeleteProperty = async (propertyId) => {
+    if (!confirm('Are you sure you want to delete this property?')) {
+      return
     }
 
-    setProperties([...properties, property])
-    setShowAddModal(false)
-    setNewProperty({
-      name: '',
-      address: '',
-      checkinTime: '3:00 PM',
-      checkoutTime: '11:00 AM',
-      instructions: '',
-      houseRules: '',
-      wifiName: '',
-      wifiPassword: '',
-      emergencyContact: '',
-      status: 'active'
-    })
-    showSuccess('Property added successfully!')
+    try {
+      setLoading(true)
+      
+      await contactsService.deleteProperty(propertyId)
+      
+      // Remove from properties list
+      setProperties(prev => prev.filter(property => property.id !== propertyId))
+      
+      // If we're viewing the deleted property, go back to list
+      if (selectedProperty && selectedProperty.id === propertyId) {
+        setSelectedProperty(null)
+      }
+      
+      showSuccess('Property deleted successfully!')
+      
+    } catch (err) {
+      console.error('Error deleting property:', err)
+      showError(err.message || 'Failed to delete property')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleInputChange = (field, value) => {
     setNewProperty(prev => ({ ...prev, [field]: value }))
   }
+
+  // Refresh button
+  const RefreshButton = () => (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={loadData}
+      disabled={loading}
+      className="h-6 px-2"
+      title="Refresh properties"
+    >
+      <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+    </Button>
+  )
 
   const renderPropertyDetail = () => (
     <div className="space-y-6">
@@ -231,41 +275,86 @@ export default function PropertiesPage() {
   const renderPropertiesList = () => (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-brand-dark">Properties</h3>
-        <Button onClick={() => setShowAddModal(true)}>
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-brand-dark">Properties</h3>
+          <RefreshButton />
+        </div>
+        <Button onClick={() => setShowAddModal(true)} disabled={loading}>
           <Plus className="mr-2 h-4 w-4" />
           Add Property
         </Button>
       </div>
       
       <div className="grid gap-4">
-        {properties.map((property) => (
-          <Card key={property.id} className="cursor-pointer hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div 
-                  className="flex-1 cursor-pointer"
-                  onClick={() => setSelectedProperty(property)}
-                >
-                  <h4 className="font-semibold text-brand-dark">{property.name}</h4>
-                  <p className="text-sm text-brand-mid-gray">{property.address}</p>
-                  <div className="flex items-center gap-4 mt-2 text-xs text-brand-mid-gray">
-                    <span>Check-in: {property.checkinTime}</span>
-                    <span>Check-out: {property.checkoutTime}</span>
+        {loading && properties.length === 0 ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="flex items-center gap-2 text-brand-mid-gray">
+              <RefreshCw className="h-5 w-5 animate-spin" />
+              <span>Loading properties...</span>
+            </div>
+          </div>
+        ) : error && properties.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-64 space-y-4">
+            <div className="text-red-500 text-center">
+              <p className="font-medium">Failed to load properties</p>
+              <p className="text-sm text-brand-mid-gray">{error}</p>
+            </div>
+            <Button onClick={loadData} variant="outline">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Try Again
+            </Button>
+          </div>
+        ) : properties.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-64 space-y-4">
+            <div className="text-center">
+              <p className="font-medium text-brand-dark">No properties found</p>
+              <p className="text-sm text-brand-mid-gray">Add your first property to get started!</p>
+            </div>
+            <Button onClick={() => setShowAddModal(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Property
+            </Button>
+          </div>
+        ) : (
+          properties.map((property) => (
+            <Card key={property.id} className="cursor-pointer hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1" onClick={() => setSelectedProperty(property)}>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-semibold text-brand-dark">{property.name}</h4>
+                      <Badge variant={property.status === 'active' ? 'default' : 'secondary'}>
+                        {property.status}
+                      </Badge>
+                    </div>
+                    <p className="text-brand-mid-gray text-sm mt-1">{property.address}</p>
+                    <div className="flex items-center gap-4 mt-2 text-xs text-brand-mid-gray">
+                      <span>Check-in: {property.checkin_time || property.checkinTime || '3:00 PM'}</span>
+                      <span>Check-out: {property.checkout_time || property.checkoutTime || '11:00 AM'}</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setSelectedProperty(property)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteProperty(property.id)
+                      }}
+                      disabled={loading}
+                      className="hover:bg-red-50 hover:border-red-300 hover:text-red-600"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => setSelectedProperty(property)}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button size="sm" variant="outline">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
     </div>
   )

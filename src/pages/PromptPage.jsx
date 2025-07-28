@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Label } from '../components/ui/label'
 import { Input } from '../components/ui/input'
 import { useNotification } from '../contexts/NotificationContext'
+import AddTaskForm from '../components/AddTaskForm'
 
 const defaultPrompt = `You are Rambley, an AI assistant for property management. You help manage guest communications, staff coordination, and property operations.
 
@@ -341,92 +342,14 @@ export default function PromptPage() {
       </div>
 
       {/* Add New Task Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5 text-brand-purple" />
-            Add New Task
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div>
-              <Label htmlFor="task-category">Category *</Label>
-              <select
-                id="task-category"
-                value={newTask.category}
-                onChange={(e) => setNewTask(prev => ({ ...prev, category: e.target.value }))}
-                className="w-full h-9 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-2"
-              >
-                <option value="">Select category</option>
-                {Object.keys(initialTaskCategories).map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <Label htmlFor="task-name">Task Name *</Label>
-              <Input
-                id="task-name"
-                value={newTask.name}
-                onChange={(e) => setNewTask(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Enter task name"
-              />
-            </div>
-            <div>
-              <Label htmlFor="task-contact">Contact</Label>
-              <select
-                id="task-contact"
-                value={newTask.contactId}
-                onChange={(e) => setNewTask(prev => ({ ...prev, contactId: e.target.value }))}
-                className="w-full h-9 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-2"
-              >
-                <option value="">Unassigned</option>
-                {availableContacts.map((contact) => (
-                  <option key={contact.id} value={contact.id}>
-                    {contact.name} ({contact.type})
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <Label htmlFor="task-location">Relevant Location</Label>
-              <select
-                id="task-location"
-                value={newTask.locationId}
-                onChange={(e) => setNewTask(prev => ({ ...prev, locationId: e.target.value }))}
-                className="w-full h-9 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-2"
-              >
-                <option value="">Not specified</option>
-                {availableLocations.map((location) => (
-                  <option key={location.id} value={location.id}>
-                    {location.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-end">
-              <Button onClick={handleAddTask} className="w-full">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Task
-              </Button>
-            </div>
-          </div>
-          
-          <div>
-            <Label htmlFor="task-requirements">Task Requirements *</Label>
-            <textarea
-              id="task-requirements"
-              value={newTask.requirements}
-              onChange={(e) => setNewTask(prev => ({ ...prev, requirements: e.target.value }))}
-              className="w-full h-24 px-3 py-2 border border-input rounded-md text-sm resize-y focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-2"
-              placeholder="Describe what needs to be done for this task..."
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <AddTaskForm 
+        newTask={newTask}
+        setNewTask={setNewTask}
+        initialTaskCategories={initialTaskCategories}
+        mockContacts={availableContacts}
+        mockProperties={availableLocations}
+        handleAddTask={handleAddTask}
+      />
 
       {/* Tasks Accordion */}
       <Card>

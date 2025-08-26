@@ -11,34 +11,81 @@ This webhook endpoint allows your Google Sheets to send aiResponse data directly
 
 ## Setup Instructions
 
-### 1. Database Migration
+### 1. Environment Selection
+**STAGING (Recommended First):**
+- Branch: `develop` (current branch)
+- Railway Environment: staging
+- Test thoroughly before production deployment
+
+**PRODUCTION:**
+- Branch: `main` 
+- Railway Environment: production
+- Deploy after staging validation
+
+### 2. Database Migration
 Run this migration on your Railway PostgreSQL database:
+
+**For Staging:**
 ```bash
-# Connect to your Railway database and run:
+# In Railway staging environment, run the migration:
 cd backend
 node scripts/guest-messages-migration.js
 ```
 
-### 2. Environment Variables
+**For Production:**
+```bash
+# After merging to main and deploying to production:
+cd backend  
+node scripts/guest-messages-migration.js
+```
+
+### 3. Railway Environment Variables
 Add these environment variables to your Railway deployment:
 
+**Staging Environment:**
 ```
-WEBHOOK_API_KEY=your-secure-api-key-here
+WEBHOOK_API_KEY=rambley_staging_wh_k3y_2024_a7f9c2e1d8b6
 ```
 
-### 3. Google Apps Script Setup
+**Production Environment:**
+```
+WEBHOOK_API_KEY=rambley_prod_wh_secure_2024_x9m7n3p5q8w2
+```
+
+**Or generate your own:**
+```bash
+# Generate a random secure key:
+openssl rand -hex 16
+```
+
+> **Security Note:** Use different API keys for staging and production
+
+### 4. Google Apps Script Setup
 1. Open your Google Sheets with the aiResponse data
 2. Go to Extensions > Apps Script
 3. Replace the default code with the content from `google-sheets-webhook-integration.gs`
 4. Set these Script Properties (Project Settings > Script Properties):
-   - `WEBHOOK_URL`: `https://your-railway-app.railway.app/api/webhook/google-sheets-messages`
-   - `WEBHOOK_API_KEY`: Same value as your Railway environment variable
+
+**For Staging Testing:**
+   - `WEBHOOK_URL`: `https://your-staging-app.railway.app/api/webhook/google-sheets-messages`
+   - `WEBHOOK_API_KEY`: `rambley_staging_wh_k3y_2024_a7f9c2e1d8b6`
    - `ACCOUNT_ID`: Your Rambley account ID (usually `1` for demo account)
 
-### 4. Testing
-From Google Apps Script:
-1. Run `sendTestData()` function to test the connection
+**For Production:**
+   - `WEBHOOK_URL`: `https://your-production-app.railway.app/api/webhook/google-sheets-messages`
+   - `WEBHOOK_API_KEY`: `rambley_prod_wh_secure_2024_x9m7n3p5q8w2`
+   - `ACCOUNT_ID`: Your Rambley account ID (usually `1` for demo account)
+
+### 5. Testing
+**Staging Environment Testing:**
+1. From Google Apps Script: Run `sendTestData()` function to test the connection
 2. Run `sendLatestAiResponse()` to send the most recent row
+3. Check Railway staging logs for successful webhook calls
+4. Verify data appears in staging database `guest_messages` table
+
+**Production Deployment:**
+1. After staging validation, merge `develop` → `main` 
+2. Update Google Apps Script with production webhook URL and API key
 3. Use `setupAutoWebhook()` to enable automatic sending (every 5 minutes)
 
 ## Webhook Endpoints

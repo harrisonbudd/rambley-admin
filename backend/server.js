@@ -10,6 +10,7 @@ import userRoutes from './routes/users.js';
 import contactRoutes from './routes/contacts.js';
 import propertyRoutes from './routes/properties.js';
 import faqRoutes from './routes/faqs.js';
+import webhookRoutes from './routes/webhook.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { authenticateToken } from './middleware/auth.js';
 
@@ -43,6 +44,13 @@ const authLimiter = rateLimit({
   message: 'Too many authentication attempts, please try again later.'
 });
 
+// Webhook rate limiting
+const webhookLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // limit each IP to 10 requests per minute for webhooks
+  message: 'Too many webhook requests, please try again later.'
+});
+
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -60,6 +68,7 @@ app.use('/api/users', authenticateToken, userRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/properties', propertyRoutes);
 app.use('/api/faqs', faqRoutes);
+app.use('/api/webhook', webhookLimiter, webhookRoutes);
 
 // Error handling
 app.use(errorHandler);

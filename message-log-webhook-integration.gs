@@ -41,6 +41,7 @@ function sendMessageLogToWebhook(messageData) {
     reference_message_uuids: messageData.refMsg || '',
     reference_task_uuids: messageData.refTask || '',
     booking_id: messageData.bookingId || '',
+    requestor_role: messageData.requestorRole || '',
     ai_enrichment_uuid: messageData.euid || '',
     raw_data: {
       original_data: messageData,
@@ -81,7 +82,7 @@ function sendMessageLogToWebhook(messageData) {
  * Enhanced appendMessageLog function that includes webhook integration
  * This should REPLACE your existing appendMessageLog function in the existing script
  */
-function appendMessageLogWithWebhook({sidSM, from, to, body, typ, refMsg, refTask, euid, bookingId}) {
+function appendMessageLogWithWebhook({sidSM, from, to, body, typ, refMsg, refTask, euid, bookingId, requestorRole}) {
   // Your existing messageLog sheet logic
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const msgSh = ss.getSheetByName('d:messageLog');
@@ -118,6 +119,7 @@ function appendMessageLogWithWebhook({sidSM, from, to, body, typ, refMsg, refTas
   const C_REFMSG = pick(Hl, ['Reference Message UUIDs','Reference Message Response','Message Chain UUIDs']);
   const C_REFTSK = pick(Hl, ['Reference Message UUIDs (Tasks)','Task UUIDs','Task UUID']);
   const C_BOOK   = pick(Hl, ['Booking Id','Booking ID','Reservation Id','Reservation ID']);
+  const C_REQROLE = pick(Hl, ['Requestor Role','requestor_role','Requestor','Role']);
   const C_EUUID  = pick(Hl, ['Ai Enrichment UUID','AI Enrichment UUID','Enrichment UUID']) || 10;
 
   // Write to sheet (your existing logic)
@@ -135,6 +137,7 @@ function appendMessageLogWithWebhook({sidSM, from, to, body, typ, refMsg, refTas
   if (C_REFMSG)set(C_REFMSG, refMsg || '');
   if (C_REFTSK)set(C_REFTSK, refTask || '');
   if (C_BOOK)  set(C_BOOK, bookingId || '');
+  if (C_REQROLE)set(C_REQROLE, requestorRole || '');
   set(C_EUUID, euid || '');
   
   msgSh.getRange(msgSh.getLastRow() + 1, 1, 1, lastCol).setValues([outRow]);
@@ -150,6 +153,7 @@ function appendMessageLogWithWebhook({sidSM, from, to, body, typ, refMsg, refTas
     refTask, 
     euid, 
     bookingId,
+    requestorRole,
     timestamp: new Date()
   });
 }
@@ -168,6 +172,7 @@ function testMessageLogWebhook() {
     refTask: 'TASK-001',
     euid: 'ENRICH-001',
     bookingId: 'BOOKING-TEST-123',
+    requestorRole: 'Guest',
     timestamp: new Date()
   };
   
@@ -213,6 +218,7 @@ function sendLatestMessageLog() {
       typ: rowData[6] || 'Outbound', // Column G - Type
       refMsg: rowData[7] || '', // Column H - Reference Message UUIDs
       refTask: rowData[8] || '', // Column I - Reference Task UUIDs
+      requestorRole: rowData[11] || '', // Column L - Requestor Role (adjust index based on your actual column)
       bookingId: rowData[10] || '', // Column K - Booking Id
       euid: rowData[9] || '' // Column J - AI Enrichment UUID
     };

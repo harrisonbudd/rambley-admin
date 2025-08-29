@@ -47,6 +47,7 @@ const webhookValidation = [
   body('message_type').optional().trim(),
   body('reference_message_uuids').optional().trim(),
   body('reference_task_uuids').optional().trim(),
+  body('requestor_role').optional().trim(),
   body('ai_enrichment_uuid').optional().trim()
 ];
 
@@ -196,6 +197,7 @@ async function handleMessageLog(req, res) {
     reference_message_uuids,
     reference_task_uuids,
     booking_id,
+    requestor_role,
     ai_enrichment_uuid,
     raw_data
   } = req.body;
@@ -233,11 +235,12 @@ async function handleMessageLog(req, res) {
       reference_message_uuids,
       reference_task_uuids,
       booking_id,
+      requestor_role,
       ai_enrichment_uuid,
       raw_data,
       updated_at
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CURRENT_TIMESTAMP)
     RETURNING id, created_at
   `, [
     account_id,
@@ -251,6 +254,7 @@ async function handleMessageLog(req, res) {
     reference_message_uuids || null,
     reference_task_uuids || null,
     booking_id || null,
+    requestor_role || null,
     ai_enrichment_uuid || null,
     raw_data || null
   ]);

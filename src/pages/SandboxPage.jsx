@@ -9,6 +9,7 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
+import { Switch } from '../components/ui/switch'
 import { cn } from '../lib/utils'
 import { useNavigate } from 'react-router-dom'
 
@@ -615,43 +616,43 @@ export default function SandboxPage() {
                   <div className="flex items-start gap-3">
                     <div className={cn(
                       "w-10 h-10 rounded-full flex items-center justify-center",
-                      selectedTask.type === 'cleaning' ? 'bg-blue-100 text-blue-600' :
-                      selectedTask.type === 'maintenance' ? 'bg-orange-100 text-orange-600' :
-                      selectedTask.type === 'inspection' ? 'bg-green-100 text-green-600' :
+                      selectedTask?.type === 'cleaning' ? 'bg-blue-100 text-blue-600' :
+                      selectedTask?.type === 'maintenance' ? 'bg-orange-100 text-orange-600' :
+                      selectedTask?.type === 'inspection' ? 'bg-green-100 text-green-600' :
                       'bg-purple-100 text-purple-600'
                     )}>
-                      {selectedTask.type === 'cleaning' ? <Brush className="h-5 w-5" /> :
-                       selectedTask.type === 'maintenance' ? <Wrench className="h-5 w-5" /> :
-                       selectedTask.type === 'inspection' ? <Search className="h-5 w-5" /> :
+                      {selectedTask?.type === 'cleaning' ? <Brush className="h-5 w-5" /> :
+                       selectedTask?.type === 'maintenance' ? <Wrench className="h-5 w-5" /> :
+                       selectedTask?.type === 'inspection' ? <Search className="h-5 w-5" /> :
                        <Package className="h-5 w-5" />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h1 className="text-lg font-bold text-brand-dark">{selectedTask.title}</h1>
+                        <h1 className="text-lg font-bold text-brand-dark">{selectedTask?.title}</h1>
                         <Badge className={cn(
                           "text-xs",
-                          selectedTask.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                          selectedTask.status === 'in-progress' ? 'bg-blue-100 text-blue-700' :
+                          selectedTask?.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                          selectedTask?.status === 'in-progress' ? 'bg-blue-100 text-blue-700' :
                           'bg-green-100 text-green-700'
                         )}>
-                          {selectedTask.status === 'in-progress' ? 'In Progress' : 
-                           selectedTask.status.charAt(0).toUpperCase() + selectedTask.status.slice(1)}
+                          {selectedTask?.status === 'in-progress' ? 'In Progress' : 
+                           selectedTask?.status?.charAt(0).toUpperCase() + selectedTask?.status?.slice(1)}
                         </Badge>
                       </div>
-                      <p className="text-sm text-brand-mid-gray mt-1">{selectedTask.description}</p>
+                      <p className="text-sm text-brand-mid-gray mt-1">{selectedTask?.description}</p>
                       
                       <div className="flex flex-wrap gap-3 text-xs text-brand-mid-gray mt-2">
                         <div className="flex items-center gap-1">
                           <MapPin className="h-3 w-3" />
-                          <span>{selectedTask.property}</span>
+                          <span>{selectedTask?.property}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <User className="h-3 w-3" />
-                          <span>{selectedTask.assignee}</span>
+                          <span>{selectedTask?.assignee}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          <span>{selectedTask.dueDate} at {selectedTask.dueTime}</span>
+                          <span>{selectedTask?.dueDate} at {selectedTask?.dueTime}</span>
                         </div>
                       </div>
                     </div>
@@ -664,7 +665,7 @@ export default function SandboxPage() {
                     <h2 className="text-sm font-medium text-brand-dark mb-3">Task Communications</h2>
                   </div>
                   
-                  {selectedTask.conversations?.map((conversation) => {
+                  {selectedTask?.conversations?.map((conversation) => {
                     const lastMessage = conversation.messages[conversation.messages.length - 1]
                     
                     // Generate initials from person name

@@ -91,8 +91,8 @@ router.get('/', [
 
     // Set RLS context on the same connection that will run the query
     if (req.user && req.user.accountId) {
-      await client.query('SELECT set_config($1, $2, true)', ['app.current_account_id', req.user.accountId.toString()]);
-      await client.query('SELECT set_config($1, $2, true)', ['app.current_user_id', req.user.userId.toString()]);
+      await client.query(`SET app.current_account_id = '${req.user.accountId}'`);
+      await client.query(`SET app.current_user_id = '${req.user.userId}'`);
     }
 
     // Build the WHERE clause for search functionality
@@ -188,8 +188,8 @@ router.get('/:conversationId', [
 
     // Set RLS context on the same connection that will run the query
     if (req.user && req.user.accountId) {
-      await client.query('SELECT set_config($1, $2, true)', ['app.current_account_id', req.user.accountId.toString()]);
-      await client.query('SELECT set_config($1, $2, true)', ['app.current_user_id', req.user.userId.toString()]);
+      await client.query(`SET app.current_account_id = '${req.user.accountId}'`);
+      await client.query(`SET app.current_user_id = '${req.user.userId}'`);
     }
 
     // Handle both booking_id and generated conversation_id formats

@@ -12,6 +12,7 @@ import propertyRoutes from './routes/properties.js';
 import faqRoutes from './routes/faqs.js';
 import messagesRoutes from './routes/messages.js';
 import taskLogRoutes from './routes/task-log.js';
+import aiLogRoutes from './routes/ai-log.js';
 import webhookRoutes from './routes/webhook.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { authenticateToken } from './middleware/auth.js';
@@ -72,6 +73,7 @@ app.use('/api/properties', propertyRoutes);
 app.use('/api/faqs', faqRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/task-log', taskLogRoutes);
+app.use('/api/ai-log', aiLogRoutes);
 app.use('/api/webhook', webhookLimiter, webhookRoutes);
 
 // Error handling

@@ -394,7 +394,40 @@ export default function TaskDetailPage() {
       )}>
         {selectedConversation ? (
           <>
-            {/* Chat Header - Mobile only */}
+            {/* Desktop Chat Header */}
+            <div className="hidden lg:flex items-center justify-between p-4 border-b bg-background">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-brand-vanilla text-brand-dark rounded-full flex items-center justify-center font-medium text-sm">
+                  {selectedConversation.personName.split(' ').map(n => n[0]).join('')}
+                </div>
+                <div>
+                  <h2 className="font-semibold text-brand-dark">{selectedConversation.personName}</h2>
+                  <p className="text-sm text-brand-mid-gray">{selectedConversation.personRole}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-brand-dark">Auto Response</span>
+                  <Switch
+                    checked={isAutoResponseEnabled}
+                    onCheckedChange={toggleAutoResponse}
+                  />
+                  <span className={cn(
+                    "text-xs font-medium",
+                    isAutoResponseEnabled ? "text-brand-purple" : "text-brand-mid-gray"
+                  )}>
+                    {isAutoResponseEnabled ? "ON" : "OFF"}
+                  </span>
+                  {isAutoResponseEnabled ? (
+                    <Bot className="h-4 w-4 text-brand-purple" />
+                  ) : (
+                    <BotOff className="h-4 w-4 text-brand-mid-gray" />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile Chat Header */}
             <div className="flex items-center justify-between p-4 border-b bg-background lg:hidden">
               <Button 
                 variant="ghost" 
@@ -420,7 +453,17 @@ export default function TaskDetailPage() {
                   checked={isAutoResponseEnabled}
                   onCheckedChange={toggleAutoResponse}
                 />
-                <span className="text-xs font-medium">ON</span>
+                <span className={cn(
+                  "text-xs font-medium",
+                  isAutoResponseEnabled ? "text-brand-purple" : "text-brand-mid-gray"
+                )}>
+                  {isAutoResponseEnabled ? "ON" : "OFF"}
+                </span>
+                {isAutoResponseEnabled ? (
+                  <Bot className="h-4 w-4 text-brand-purple" />
+                ) : (
+                  <BotOff className="h-4 w-4 text-brand-mid-gray" />
+                )}
               </div>
             </div>
 

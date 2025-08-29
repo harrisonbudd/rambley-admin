@@ -63,7 +63,34 @@ const demoTasks = [
     status: 'pending',
     priority: 'high',
     description: 'This is a demo cleaning task created automatically from a guest message.',
-    threadCount: 2
+    threadCount: 2,
+    conversations: [
+      {
+        id: 'alex-demo-task1',
+        personName: 'Alex Demo',
+        personRole: 'Guest',
+        personType: 'guest',
+        lastActivity: '2:36 PM',
+        autoResponseEnabled: true,
+        messages: [
+          { id: 1, text: 'Can you create a task for me?', sender: 'guest', senderName: 'Alex Demo', timestamp: '2:35 PM' },
+          { id: 2, text: 'I\'ve created a demo task for you! You can see it in the tasks section.', sender: 'rambley', senderName: 'Rambley', timestamp: '2:36 PM' },
+          { id: 3, text: 'Demo cleaning task created. Assigned to Demo Cleaner.', sender: 'rambley', senderName: 'Rambley', timestamp: '2:36 PM', isSystemMessage: true }
+        ]
+      },
+      {
+        id: 'demo-cleaner-task1',
+        personName: 'Demo Cleaner',
+        personRole: 'Cleaning Staff',
+        personType: 'staff',
+        lastActivity: '2:38 PM',
+        autoResponseEnabled: false,
+        messages: [
+          { id: 4, text: 'Hi! There\'s a demo cleaning task at Demo Villa. Can you handle this?', sender: 'rambley', senderName: 'Rambley', timestamp: '2:37 PM' },
+          { id: 5, text: 'Sure! I\'ll take care of this demo task right away.', sender: 'staff', senderName: 'Demo Cleaner', timestamp: '2:38 PM' }
+        ]
+      }
+    ]
   },
   {
     id: 2,
@@ -76,7 +103,21 @@ const demoTasks = [
     status: 'in-progress',
     priority: 'medium',
     description: 'Sample maintenance task to demonstrate the system.',
-    threadCount: 1
+    threadCount: 1,
+    conversations: [
+      {
+        id: 'demo-technician-task2',
+        personName: 'Demo Technician',
+        personRole: 'Maintenance Staff',
+        personType: 'staff',
+        lastActivity: '2:28 PM',
+        autoResponseEnabled: false,
+        messages: [
+          { id: 1, text: 'We have a maintenance demo task at Demo House. Can you check it out?', sender: 'rambley', senderName: 'Rambley', timestamp: '2:26 PM' },
+          { id: 2, text: 'I\'m on it! This is a great demo of the system.', sender: 'staff', senderName: 'Demo Technician', timestamp: '2:28 PM' }
+        ]
+      }
+    ]
   },
   {
     id: 3,
@@ -89,8 +130,22 @@ const demoTasks = [
     status: 'completed',
     priority: 'low',
     description: 'Completed demo inspection task.',
-    threadCount: 1
-  },
+    threadCount: 1,
+    conversations: [
+      {
+        id: 'demo-inspector-task3',
+        personName: 'Demo Inspector',
+        personRole: 'Property Inspector',
+        personType: 'staff',
+        lastActivity: '2:22 PM',
+        autoResponseEnabled: false,
+        messages: [
+          { id: 1, text: 'Demo inspection task for Demo Villa has been completed successfully.', sender: 'staff', senderName: 'Demo Inspector', timestamp: '2:20 PM' },
+          { id: 2, text: 'Excellent! Thank you for completing the demo inspection.', sender: 'rambley', senderName: 'Rambley', timestamp: '2:22 PM' }
+        ]
+      }
+    ]
+  }
 ]
 
 const statusColors = {
@@ -226,6 +281,9 @@ export default function SandboxPage() {
   const [taskFilter, setTaskFilter] = useState('all')
   const [taskPropertyFilter, setTaskPropertyFilter] = useState('all')
   const [taskSearchTerm, setTaskSearchTerm] = useState('')
+  const [selectedTask, setSelectedTask] = useState(null)
+  const [selectedTaskConversation, setSelectedTaskConversation] = useState(null)
+  const [taskConversationStates, setTaskConversationStates] = useState({})
   
   // Demo state
   const [demoMode, setDemoMode] = useState('messages') // 'messages' or 'tasks'
@@ -332,6 +390,53 @@ export default function SandboxPage() {
   const handleTaskAction = (e, taskId, action) => {
     e.stopPropagation()
     console.log(`Demo: ${action} task:`, taskId)
+  }
+
+  const handleTaskClick = (task) => {
+    setSelectedTask(task)
+    setSelectedTaskConversation(null)
+    setDemoMode('task-detail')
+  }
+
+  const handleTaskSendMessage = (e) => {
+    e.preventDefault()
+    if (!newMessage.trim() || !selectedTaskConversation) return
+    
+    // When sending a message, disable auto-response for this conversation
+    setTaskConversationStates(prev => ({
+      ...prev,
+      [selectedTaskConversation.id]: {
+        ...prev[selectedTaskConversation.id],
+        autoResponseEnabled: false
+      }
+    }))
+    
+    // In real app, this would send the message via API
+    console.log('Sending task message:', newMessage, 'to conversation:', selectedTaskConversation.id)
+    setNewMessage('')
+  }
+
+  const toggleTaskAutoResponse = () => {
+    if (!selectedTaskConversation) return
+    
+    setTaskConversationStates(prev => ({
+      ...prev,
+      [selectedTaskConversation.id]: {
+        ...prev[selectedTaskConversation.id],
+        autoResponseEnabled: !getTaskAutoResponseState()
+      }
+    }))
+  }
+
+  const getTaskAutoResponseState = () => {
+    if (!selectedTaskConversation) return false
+    return taskConversationStates[selectedTaskConversation.id]?.autoResponseEnabled ?? selectedTaskConversation.autoResponseEnabled
+  }
+
+  const backToTasksList = () => {
+    setSelectedTask(null)
+    setSelectedTaskConversation(null)
+    setDemoMode('tasks')
   }
 
   const startNewChat = () => {
@@ -486,7 +591,344 @@ export default function SandboxPage() {
       {/* Content */}
       <div className="flex-1 overflow-hidden">
         <AnimatePresence mode="wait">
-          {demoMode === 'messages' ? (
+          {demoMode === 'task-detail' ? (
+            <motion.div
+              key="task-detail"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="h-full flex"
+            >
+              {/* Task Detail View - Similar to TaskDetailPage */}
+              <div className={cn(
+                "w-full lg:w-96 border-r bg-background",
+                selectedTaskConversation ? "hidden lg:block" : "block"
+              )}>
+                {/* Task Header */}
+                <div className="p-6 border-b">
+                  <Button variant="ghost" onClick={backToTasksList} className="mb-4 -ml-2">
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Tasks
+                  </Button>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className={cn(
+                      "w-10 h-10 rounded-full flex items-center justify-center",
+                      selectedTask.type === 'cleaning' ? 'bg-blue-100 text-blue-600' :
+                      selectedTask.type === 'maintenance' ? 'bg-orange-100 text-orange-600' :
+                      selectedTask.type === 'inspection' ? 'bg-green-100 text-green-600' :
+                      'bg-purple-100 text-purple-600'
+                    )}>
+                      {selectedTask.type === 'cleaning' ? <Brush className="h-5 w-5" /> :
+                       selectedTask.type === 'maintenance' ? <Wrench className="h-5 w-5" /> :
+                       selectedTask.type === 'inspection' ? <Search className="h-5 w-5" /> :
+                       <Package className="h-5 w-5" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h1 className="text-lg font-bold text-brand-dark">{selectedTask.title}</h1>
+                        <Badge className={cn(
+                          "text-xs",
+                          selectedTask.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                          selectedTask.status === 'in-progress' ? 'bg-blue-100 text-blue-700' :
+                          'bg-green-100 text-green-700'
+                        )}>
+                          {selectedTask.status === 'in-progress' ? 'In Progress' : 
+                           selectedTask.status.charAt(0).toUpperCase() + selectedTask.status.slice(1)}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-brand-mid-gray mt-1">{selectedTask.description}</p>
+                      
+                      <div className="flex flex-wrap gap-3 text-xs text-brand-mid-gray mt-2">
+                        <div className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          <span>{selectedTask.property}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <User className="h-3 w-3" />
+                          <span>{selectedTask.assignee}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          <span>{selectedTask.dueDate} at {selectedTask.dueTime}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Conversations List */}
+                <div className="overflow-y-auto">
+                  <div className="p-4">
+                    <h2 className="text-sm font-medium text-brand-dark mb-3">Task Communications</h2>
+                  </div>
+                  
+                  {selectedTask.conversations?.map((conversation) => {
+                    const lastMessage = conversation.messages[conversation.messages.length - 1]
+                    
+                    // Generate initials from person name
+                    const getInitials = (name) => {
+                      const names = name.split(' ')
+                      if (names.length >= 2) {
+                        return `${names[0][0]}${names[1][0]}`.toUpperCase()
+                      }
+                      return name.substring(0, 2).toUpperCase()
+                    }
+                    
+                    // Get avatar background color based on person type
+                    const getAvatarColor = (personType) => {
+                      switch (personType) {
+                        case 'guest':
+                          return 'bg-brand-vanilla text-brand-dark'
+                        case 'staff':
+                          return 'bg-brand-dark text-brand-vanilla'
+                        default:
+                          return 'bg-brand-dark text-brand-vanilla'
+                      }
+                    }
+                    
+                    return (
+                      <motion.div
+                        key={conversation.id}
+                        whileHover={{ backgroundColor: 'rgba(154, 23, 80, 0.05)' }}
+                        className={cn(
+                          "p-4 border-b cursor-pointer transition-colors",
+                          selectedTaskConversation?.id === conversation.id ? "bg-brand-purple/10 border-brand-purple/20" : ""
+                        )}
+                        onClick={() => setSelectedTaskConversation(conversation)}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={cn(
+                            "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 font-medium text-sm",
+                            getAvatarColor(conversation.personType)
+                          )}>
+                            {getInitials(conversation.personName)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-medium text-brand-dark text-sm">{conversation.personName}</h3>
+                              <Badge variant="secondary" className="text-xs">
+                                {conversation.personRole}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-brand-mid-gray truncate">
+                              {lastMessage.senderName}: {lastMessage.text}
+                            </p>
+                            <div className="flex items-center justify-between mt-1">
+                              <p className="text-xs text-brand-mid-gray">{conversation.lastActivity}</p>
+                              <Badge variant="outline" className="text-xs">
+                                {conversation.messages.length}
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Task Conversation Messages View */}
+              <div className={cn(
+                "flex-1 flex flex-col",
+                !selectedTaskConversation ? "hidden lg:flex" : "flex"
+              )}>
+                {selectedTaskConversation ? (
+                  <>
+                    {/* Desktop Task Chat Header */}
+                    <div className="hidden lg:flex items-center justify-between p-4 border-b bg-background">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-brand-vanilla text-brand-dark rounded-full flex items-center justify-center font-medium text-sm">
+                          {selectedTaskConversation.personName.split(' ').map(n => n[0]).join('')}
+                        </div>
+                        <div>
+                          <h2 className="font-semibold text-brand-dark">{selectedTaskConversation.personName}</h2>
+                          <p className="text-sm text-brand-mid-gray">{selectedTaskConversation.personRole}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-brand-dark">Auto Response</span>
+                          <Switch
+                            checked={getTaskAutoResponseState()}
+                            onCheckedChange={toggleTaskAutoResponse}
+                          />
+                          <span className={cn(
+                            "text-xs font-medium",
+                            getTaskAutoResponseState() ? "text-brand-purple" : "text-brand-mid-gray"
+                          )}>
+                            {getTaskAutoResponseState() ? "ON" : "OFF"}
+                          </span>
+                          {getTaskAutoResponseState() ? (
+                            <Bot className="h-4 w-4 text-brand-purple" />
+                          ) : (
+                            <BotOff className="h-4 w-4 text-brand-mid-gray" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mobile Task Chat Header */}
+                    <div className="flex items-center justify-between p-4 border-b bg-background lg:hidden">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setSelectedTaskConversation(null)}
+                      >
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Back
+                      </Button>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-brand-purple rounded-full flex items-center justify-center">
+                          <span className="text-xs font-medium text-white">
+                            {selectedTaskConversation.personName.split(' ').map(n => n[0]).join('')}
+                          </span>
+                        </div>
+                        <div>
+                          <h2 className="font-medium text-brand-dark">{selectedTaskConversation.personName}</h2>
+                          <p className="text-xs text-brand-mid-gray">{selectedTaskConversation.personRole}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={getTaskAutoResponseState()}
+                          onCheckedChange={toggleTaskAutoResponse}
+                        />
+                        <span className={cn(
+                          "text-xs font-medium",
+                          getTaskAutoResponseState() ? "text-brand-purple" : "text-brand-mid-gray"
+                        )}>
+                          {getTaskAutoResponseState() ? "ON" : "OFF"}
+                        </span>
+                        {getTaskAutoResponseState() ? (
+                          <Bot className="h-4 w-4 text-brand-purple" />
+                        ) : (
+                          <BotOff className="h-4 w-4 text-brand-mid-gray" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Task Messages Container */}
+                    <div className="flex-1 overflow-y-auto pb-20 lg:pb-0">
+                      <div className="p-4 space-y-4">
+                        <AnimatePresence>
+                          {selectedTaskConversation.messages.map((message, index) => (
+                            <motion.div
+                              key={message.id}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.1 }}
+                              className={cn(
+                                "flex",
+                                message.sender === 'guest' || (message.sender !== 'guest' && message.sender !== 'rambley' && message.sender !== 'host') 
+                                  ? "justify-start" 
+                                  : "justify-end",
+                                message.isSystemMessage && "opacity-60 justify-center"
+                              )}
+                            >
+                              {message.isSystemMessage ? (
+                                <div className="bg-gray-100 text-gray-600 italic text-sm px-3 py-2 rounded-lg max-w-md text-center">
+                                  {message.text}
+                                </div>
+                              ) : (
+                                <div className={cn(
+                                  "max-w-[85%] sm:max-w-xs lg:max-w-md",
+                                  message.sender === 'guest' || (message.sender !== 'guest' && message.sender !== 'rambley' && message.sender !== 'host')
+                                    ? "mr-4 sm:mr-12" 
+                                    : "ml-4 sm:ml-12"
+                                )}>
+                                  {/* Sender badge for non-guest messages */}
+                                  {message.sender !== 'guest' && (message.sender === 'rambley' || message.sender === 'host') && (
+                                    <div className={cn(
+                                      "flex mb-1",
+                                      message.sender !== 'rambley' && message.sender !== 'host'
+                                        ? "justify-start"
+                                        : "justify-end"
+                                    )}>
+                                      <div className="flex items-center gap-1 text-xs text-brand-mid-gray">
+                                        {message.sender === 'rambley' ? (
+                                          <>
+                                            <Bot className="h-3 w-3" />
+                                            <span>Rambley</span>
+                                          </>
+                                        ) : message.sender === 'host' ? (
+                                          <>
+                                            <User className="h-3 w-3" />
+                                            <span>Host</span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <User className="h-3 w-3" />
+                                            <span>{message.senderName || 'Contact'}</span>
+                                          </>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                  <div className={cn(
+                                    "px-4 py-2 rounded-lg",
+                                    message.sender === 'guest'
+                                      ? "bg-brand-vanilla text-brand-dark"
+                                      : message.sender === 'rambley' || message.sender === 'host'
+                                        ? "bg-brand-purple text-white"
+                                        : "bg-brand-dark text-brand-vanilla"
+                                  )}>
+                                    <p className="text-sm">{message.text}</p>
+                                    <p className={cn(
+                                      "text-xs mt-1",
+                                      message.sender === 'guest'
+                                        ? "text-brand-mid-gray"
+                                        : message.sender === 'rambley' || message.sender === 'host'
+                                          ? "text-white/70"
+                                          : "text-brand-vanilla/70"
+                                    )}>
+                                      {message.timestamp}
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>  
+                      </div>
+                    </div>
+
+                    {/* Task Message Input */}
+                    <div className="fixed bottom-0 left-0 right-0 lg:relative lg:bottom-auto lg:left-auto lg:right-auto p-4 border-t bg-background z-20 safe-area-inset-bottom">
+                      {!getTaskAutoResponseState() && (
+                        <div className="mb-3 p-2 bg-brand-vanilla/50 rounded-lg border border-brand-vanilla">
+                          <div className="flex items-center gap-2 text-sm text-brand-dark">
+                            <BotOff className="h-4 w-4" />
+                            <span>Auto-response is disabled. You're in manual mode for this conversation.</span>
+                          </div>
+                        </div>
+                      )}
+                      <form onSubmit={handleTaskSendMessage} className="flex gap-2">
+                        <Input
+                          value={newMessage}
+                          onChange={(e) => setNewMessage(e.target.value)}
+                          placeholder={`Message ${selectedTaskConversation.personName}...`}
+                          className="flex-1"
+                        />
+                        <Button type="submit" size="icon">
+                          <Send className="h-4 w-4" />
+                        </Button>
+                      </form>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex-1 flex items-center justify-center bg-brand-light/50">
+                    <div className="text-center">
+                      <MessageCircle className="mx-auto h-12 w-12 text-brand-mid-gray mb-4" />
+                      <h3 className="text-lg font-medium text-brand-dark mb-2">Select a conversation</h3>
+                      <p className="text-brand-mid-gray">Choose a person to view your communication with them</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          ) : demoMode === 'messages' ? (
             <motion.div
               key="messages"
               initial={{ opacity: 0, x: -20 }}
@@ -572,7 +1014,40 @@ export default function SandboxPage() {
               )}>
                 {selectedConversation ? (
                   <>
-                    {/* Chat Header - Mobile only */}
+                    {/* Desktop Chat Header */}
+                    <div className="hidden lg:flex items-center justify-between p-4 border-b bg-background">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-brand-vanilla text-brand-dark rounded-full flex items-center justify-center font-medium text-sm">
+                          {selectedConversation.guestName.split(' ').map(n => n[0]).join('')}
+                        </div>
+                        <div>
+                          <h2 className="font-semibold text-brand-dark">{selectedConversation.guestName}</h2>
+                          <p className="text-sm text-brand-mid-gray">{selectedConversation.property}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-brand-dark">Auto Response</span>
+                          <Switch
+                            checked={isAutoResponseEnabled}
+                            onCheckedChange={toggleAutoResponse}
+                          />
+                          <span className={cn(
+                            "text-xs font-medium",
+                            isAutoResponseEnabled ? "text-brand-purple" : "text-brand-mid-gray"
+                          )}>
+                            {isAutoResponseEnabled ? "ON" : "OFF"}
+                          </span>
+                          {isAutoResponseEnabled ? (
+                            <Bot className="h-4 w-4 text-brand-purple" />
+                          ) : (
+                            <BotOff className="h-4 w-4 text-brand-mid-gray" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mobile Chat Header */}
                     <div className="flex items-center justify-between p-4 border-b bg-background lg:hidden">
                       <Button 
                         variant="ghost" 
@@ -592,6 +1067,23 @@ export default function SandboxPage() {
                           <h2 className="font-medium text-brand-dark">{selectedConversation.guestName}</h2>
                           <p className="text-xs text-brand-mid-gray">{selectedConversation.property}</p>
                         </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={isAutoResponseEnabled}
+                          onCheckedChange={toggleAutoResponse}
+                        />
+                        <span className={cn(
+                          "text-xs font-medium",
+                          isAutoResponseEnabled ? "text-brand-purple" : "text-brand-mid-gray"
+                        )}>
+                          {isAutoResponseEnabled ? "ON" : "OFF"}
+                        </span>
+                        {isAutoResponseEnabled ? (
+                          <Bot className="h-4 w-4 text-brand-purple" />
+                        ) : (
+                          <BotOff className="h-4 w-4 text-brand-mid-gray" />
+                        )}
                       </div>
                     </div>
 
@@ -798,7 +1290,7 @@ export default function SandboxPage() {
                           "transition-all hover:shadow-md cursor-pointer",
                           task.status === 'completed' ? 'opacity-75' : ''
                         )}
-                        onClick={() => console.log('Demo: Navigate to task', task.id)}
+                        onClick={() => handleTaskClick(task)}
                       >
                         <div className="p-6">
                           <div className="flex flex-col sm:flex-row sm:items-start gap-4">

@@ -7,9 +7,9 @@
  * 3. Run: node test-requestor-role-webhook.js
  */
 
-const WEBHOOK_URL = 'https://your-app.railway.app/api/webhook/google-sheets-messages'; // Update with your Railway URL
-const API_KEY = 'your-api-key'; // Update with your actual API key
-const ACCOUNT_ID = 1; // Update with your account ID
+const WEBHOOK_URL = 'https://empathetic-insight-staging.up.railway.app/api/webhook/google-sheets-messages'; // Railway staging URL
+const API_KEY = 'rambley_staging_wh_k3y_2024_a7f9c2e1d8b6'; // Staging API key from RAILWAY-DEPLOYMENT.md
+const ACCOUNT_ID = 1; // Account ID
 
 async function testRequestorRoleWebhook() {
   const testPayload = {
@@ -122,8 +122,9 @@ async function runAllTests() {
   console.log('🚀 Starting requestor_role webhook tests...\n');
   
   // Update these values before running
-  if (WEBHOOK_URL.includes('your-app.railway.app') || API_KEY === 'your-api-key') {
-    console.log('❌ Please update the WEBHOOK_URL and API_KEY at the top of this file before running tests');
+  if (WEBHOOK_URL.includes('your-staging-app.railway.app')) {
+    console.log('❌ Please update the WEBHOOK_URL at the top of this file with your actual Railway staging URL');
+    console.log('💡 You can find it in your Railway dashboard > staging environment > Settings > Domains');
     process.exit(1);
   }
   

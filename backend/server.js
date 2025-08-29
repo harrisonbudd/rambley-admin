@@ -10,6 +10,7 @@ import userRoutes from './routes/users.js';
 import contactRoutes from './routes/contacts.js';
 import propertyRoutes from './routes/properties.js';
 import faqRoutes from './routes/faqs.js';
+import messagesRoutes from './routes/messages.js';
 import webhookRoutes from './routes/webhook.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { authenticateToken } from './middleware/auth.js';
@@ -68,6 +69,7 @@ app.use('/api/users', authenticateToken, userRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/properties', propertyRoutes);
 app.use('/api/faqs', faqRoutes);
+app.use('/api/messages', messagesRoutes);
 app.use('/api/webhook', webhookLimiter, webhookRoutes);
 
 // Error handling

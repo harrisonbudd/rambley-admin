@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Phone, MessageCircle, Send, ArrowLeft, Bot, BotOff, User, CheckSquare, ExternalLink, Search } from 'lucide-react'
 import { Button } from '../components/ui/button'
@@ -8,62 +8,9 @@ import { Badge } from '../components/ui/badge'
 import { cn } from '../lib/utils'
 import { useNavigate } from 'react-router-dom'
 import { Switch } from '../components/ui/switch'
+import apiService from '../services/api'
 
-// Mock data
-const conversations = [
-  {
-    id: 1,
-    guestName: 'Sarah Johnson',
-    phone: '+1 (555) 123-4567',
-    lastMessage: 'Thank you for the check-in instructions!',
-    timestamp: '2 minutes ago',
-    unread: 2,
-    property: 'Sunset Villa',
-    autoResponseEnabled: true, // Conversation-specific auto-response state
-    messages: [
-      { id: 1, text: 'Hi! I\'ll be arriving around 3 PM today. Is early check-in possible?', sender: 'guest', timestamp: '1:30 PM' },
-      { id: 2, text: 'Hello Sarah! Welcome to Sunset Villa. Early check-in is available for a small fee. I\'ll send you the details.', sender: 'host', senderType: 'rambley', timestamp: '1:35 PM' },
-      { id: 3, text: 'Perfect! Also, where should I park?', sender: 'guest', timestamp: '1:40 PM' },
-      { id: 4, text: 'You can park in the driveway or on the street. The garage code is 1234 if you prefer covered parking.', sender: 'host', senderType: 'host', timestamp: '1:42 PM' },
-      { id: 5, text: 'Could I get some fresh towels delivered to the room?', sender: 'guest', timestamp: '2:05 PM', generatedTasks: [1] },
-      { id: 6, text: 'Of course! I\'ve arranged for fresh towels to be delivered within the hour.', sender: 'host', senderType: 'rambley', timestamp: '2:06 PM' },
-      { id: 7, text: 'Thank you for the check-in instructions!', sender: 'guest', timestamp: '2:10 PM' },
-    ]
-  },
-  {
-    id: 2,
-    guestName: 'Mike Chen',
-    phone: '+1 (555) 987-6543',
-    lastMessage: 'The WiFi password isn\'t working',
-    timestamp: '15 minutes ago',
-    unread: 1,
-    property: 'Mountain Retreat',
-    autoResponseEnabled: true,
-    messages: [
-      { id: 1, text: 'Hi, I just checked in but the WiFi password isn\'t working', sender: 'guest', timestamp: '1:55 PM', generatedTasks: [2] },
-      { id: 2, text: 'Hi Mike! Let me help you with that. Try "MountainView2024" - make sure to include the capital letters. I\'ve also created a tech support task to verify the connection.', sender: 'host', senderType: 'rambley', timestamp: '1:58 PM' },
-    ]
-  },
-  {
-    id: 3,
-    guestName: 'Emma Rodriguez',
-    phone: '+1 (555) 456-7890',
-    lastMessage: 'Check-out completed, thank you!',
-    timestamp: '1 hour ago',
-    unread: 0,
-    property: 'Beach House',
-    autoResponseEnabled: false, // This conversation has auto-response disabled
-    messages: [
-      { id: 1, text: 'Hi! We had a wonderful stay. Just wanted to let you know we\'ve checked out and left the keys on the counter.', sender: 'guest', timestamp: '12:30 PM' },
-      { id: 2, text: 'Thank you Emma! So glad you enjoyed your stay. Hope to host you again soon!', sender: 'host', senderType: 'host', timestamp: '12:32 PM' },
-      { id: 3, text: 'Actually, we noticed the bathroom faucet was dripping. Thought you should know.', sender: 'guest', timestamp: '12:45 PM', generatedTasks: [3, 4] },
-      { id: 4, text: 'Thanks for letting us know! I\'ve logged this for our maintenance team.', sender: 'host', senderType: 'host', timestamp: '12:50 PM' },
-      { id: 5, text: 'Check-out completed, thank you!', sender: 'guest', timestamp: '1:00 PM' },
-    ]
-  },
-]
-
-// Mock tasks data for reference
+// Mock tasks data for reference (will be replaced with API calls later)
 const mockTasks = {
   1: { id: 1, title: 'Deliver fresh towels - Room 12', type: 'housekeeping', status: 'pending' },
   2: { id: 2, title: 'WiFi troubleshooting - Mountain Retreat', type: 'maintenance', status: 'in-progress' },
@@ -73,15 +20,79 @@ const mockTasks = {
 
 export default function MessagesPage() {
   const navigate = useNavigate()
+  const [conversations, setConversations] = useState([])
   const [selectedConversation, setSelectedConversation] = useState(null)
   const [newMessage, setNewMessage] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
-  const [conversationStates, setConversationStates] = useState(
-    conversations.reduce((acc, conv) => {
-      acc[conv.id] = { autoResponseEnabled: conv.autoResponseEnabled }
-      return acc
-    }, {})
-  )
+  const [conversationStates, setConversationStates] = useState({})
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [conversationLoading, setConversationLoading] = useState(false)
+
+  // Load conversations on component mount
+  useEffect(() => {
+    loadConversations()
+  }, [])
+
+  // Load conversations with search
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadConversations()
+    }, 300) // Debounce search
+
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery])
+
+  const loadConversations = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await apiService.getConversations({ 
+        search: searchQuery || undefined,
+        limit: 50 
+      })
+      
+      setConversations(response.data || [])
+      
+      // Initialize conversation states
+      const states = {}
+      response.data?.forEach(conv => {
+        states[conv.id] = { 
+          autoResponseEnabled: conv.autoResponseEnabled ?? true 
+        }
+      })
+      setConversationStates(states)
+      
+    } catch (err) {
+      console.error('Failed to load conversations:', err)
+      setError('Failed to load conversations. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleConversationSelect = async (conversation) => {
+    try {
+      setConversationLoading(true)
+      setError(null)
+      
+      // If we already have messages in the conversation, use them
+      if (conversation.messages && conversation.messages.length > 0) {
+        setSelectedConversation(conversation)
+        return
+      }
+      
+      // Otherwise, load full conversation from API
+      const response = await apiService.getConversation(conversation.id)
+      setSelectedConversation(response.data)
+      
+    } catch (err) {
+      console.error('Failed to load conversation:', err)
+      setError('Failed to load conversation messages. Please try again.')
+    } finally {
+      setConversationLoading(false)
+    }
+  }
 
   // Filter conversations based on search query
   const filteredConversations = conversations.filter(conversation => {
@@ -227,7 +238,37 @@ export default function MessagesPage() {
         </div>
         
         <div className="overflow-y-auto">
-          {filteredConversations.length > 0 ? (
+          {error && (
+            <div className="p-4 m-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-600 text-sm">{error}</p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={loadConversations}
+                className="mt-2"
+              >
+                Try Again
+              </Button>
+            </div>
+          )}
+          
+          {loading ? (
+            <div className="p-4 text-center">
+              <div className="animate-pulse space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="p-4 border-b">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                      <div className="flex-1">
+                        <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
+                        <div className="h-3 bg-gray-100 rounded w-3/4"></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : filteredConversations.length > 0 ? (
             filteredConversations.map((conversation) => {
               // Generate initials from guest name
               const getInitials = (name) => {
@@ -246,7 +287,7 @@ export default function MessagesPage() {
                     "p-4 border-b cursor-pointer transition-colors",
                     selectedConversation?.id === conversation.id ? "bg-brand-purple/10 border-brand-purple/20" : ""
                   )}
-                  onClick={() => setSelectedConversation(conversation)}
+                  onClick={() => handleConversationSelect(conversation)}
                 >
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 bg-brand-vanilla text-brand-dark rounded-full flex items-center justify-center font-medium text-sm">
@@ -369,8 +410,13 @@ export default function MessagesPage() {
             {/* Messages Container - with bottom padding for fixed input */}
             <div className="flex-1 overflow-y-auto pb-20 lg:pb-0">
               <div className="p-4 space-y-4">
-                <AnimatePresence>
-                  {selectedConversation.messages.map((message, index) => (
+                {conversationLoading ? (
+                  <div className="flex items-center justify-center h-32">
+                    <div className="animate-pulse text-brand-mid-gray">Loading messages...</div>
+                  </div>
+                ) : (
+                  <AnimatePresence>
+                    {selectedConversation.messages?.map((message, index) => (
                   <motion.div
                     key={message.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -414,8 +460,9 @@ export default function MessagesPage() {
                       </div>
                     </div>
                   </motion.div>
-                ))}
-                </AnimatePresence>
+                  ))}
+                  </AnimatePresence>
+                )}
               </div>
             </div>
 

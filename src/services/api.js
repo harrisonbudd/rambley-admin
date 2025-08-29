@@ -320,6 +320,26 @@ class ApiService {
     return this.request('/faqs/tags/list');
   }
 
+  // Messages methods
+  async getConversations(params = {}) {
+    const searchParams = new URLSearchParams();
+    
+    if (params.search) searchParams.append('search', params.search);
+    if (params.limit) searchParams.append('limit', params.limit);
+    
+    const queryString = searchParams.toString();
+    return this.request(`/messages${queryString ? '?' + queryString : ''}`);
+  }
+
+  async getConversation(conversationId, params = {}) {
+    const searchParams = new URLSearchParams();
+    
+    if (params.limit) searchParams.append('limit', params.limit);
+    
+    const queryString = searchParams.toString();
+    return this.request(`/messages/${conversationId}${queryString ? '?' + queryString : ''}`);
+  }
+
   // Check if user is authenticated
   isAuthenticated() {
     return !!this.token;

@@ -76,6 +76,8 @@ router.get('/', [
   query('search').optional().trim(),
   query('limit').optional().isInt({ min: 1, max: 100 }).toInt()
 ], async (req, res) => {
+  const client = await pool.connect();
+  
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -86,6 +88,12 @@ router.get('/', [
     }
 
     const { search, limit = 50 } = req.query;
+
+    // Set RLS context on the same connection that will run the query
+    if (req.user && req.user.accountId) {
+      await client.query('SELECT set_config($1, $2, true)', ['app.current_account_id', req.user.accountId.toString()]);
+      await client.query('SELECT set_config($1, $2, true)', ['app.current_user_id', req.user.userId.toString()]);
+    }
 
     // Build the WHERE clause for search functionality
     let searchConditions = '';
@@ -135,7 +143,7 @@ router.get('/', [
     
     queryParams.push(limit);
 
-    const result = await pool.query(conversationsQuery, queryParams);
+    const result = await client.query(conversationsQuery, queryParams);
     
     // Transform each conversation
     const conversations = result.rows.map(row => {
@@ -154,6 +162,8 @@ router.get('/', [
       error: 'Internal server error',
       message: 'Failed to fetch conversations'
     });
+  } finally {
+    client.release();
   }
 });
 
@@ -162,6 +172,8 @@ router.get('/:conversationId', [
   param('conversationId').trim().notEmpty().withMessage('Conversation ID is required'),
   query('limit').optional().isInt({ min: 1, max: 1000 }).toInt()
 ], async (req, res) => {
+  const client = await pool.connect();
+  
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -173,6 +185,12 @@ router.get('/:conversationId', [
 
     const { conversationId } = req.params;
     const { limit = 500 } = req.query;
+
+    // Set RLS context on the same connection that will run the query
+    if (req.user && req.user.accountId) {
+      await client.query('SELECT set_config($1, $2, true)', ['app.current_account_id', req.user.accountId.toString()]);
+      await client.query('SELECT set_config($1, $2, true)', ['app.current_user_id', req.user.userId.toString()]);
+    }
 
     // Handle both booking_id and generated conversation_id formats
     let whereClause;
@@ -227,7 +245,7 @@ router.get('/:conversationId', [
       LIMIT $1
     `;
 
-    const result = await pool.query(messagesQuery, queryParams);
+    const result = await client.query(messagesQuery, queryParams);
     
     if (result.rows.length === 0) {
       return res.status(404).json({
@@ -253,6 +271,8 @@ router.get('/:conversationId', [
       error: 'Internal server error',
       message: 'Failed to fetch conversation messages'
     });
+  } finally {
+    client.release();
   }
 });
 

@@ -82,6 +82,48 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const signup = async (userData) => {
+    try {
+      setIsLoading(true);
+      const response = await apiService.signup(userData);
+      showSuccess('Account created successfully! Please check your email to verify your account.');
+      return { success: true, user: response.user, message: response.message };
+    } catch (error) {
+      showError(error.message || 'Signup failed');
+      return { success: false, error: error.message };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const verifyEmail = async (token) => {
+    try {
+      setIsLoading(true);
+      const response = await apiService.verifyEmail(token);
+      showSuccess('Email verified successfully! You can now sign in.');
+      return { success: true, user: response.user, message: response.message };
+    } catch (error) {
+      showError(error.message || 'Email verification failed');
+      return { success: false, error: error.message };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resendVerification = async (email) => {
+    try {
+      setIsLoading(true);
+      const response = await apiService.resendVerification(email);
+      showSuccess('Verification email sent! Please check your inbox.');
+      return { success: true, message: response.message };
+    } catch (error) {
+      showError(error.message || 'Failed to send verification email');
+      return { success: false, error: error.message };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const updateProfile = async (profileData) => {
     try {
       const response = await apiService.updateProfile(profileData);
@@ -116,6 +158,9 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     register,
+    signup,
+    verifyEmail,
+    resendVerification,
     updateProfile,
     changePassword,
     isAdmin,

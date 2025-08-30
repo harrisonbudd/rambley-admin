@@ -119,6 +119,24 @@ class ApiService {
     });
   }
 
+  async signup(userData) {
+    return this.request('/auth/signup', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async verifyEmail(token) {
+    return this.request('/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  }
+
+  async resendVerification(email) {
+    return this.request(`/auth/resend-verification/${encodeURIComponent(email)}`);
+  }
+
   async logout() {
     try {
       if (this.refreshToken) {

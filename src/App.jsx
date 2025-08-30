@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import LoginPage from './pages/LoginPage'
+import EmailVerificationPage from './pages/EmailVerificationPage'
 import MessagesPage from './pages/MessagesPage'
 import TasksPage from './pages/TasksPage'
 import TaskDetailPage from './pages/TaskDetailPage'
@@ -15,7 +16,8 @@ import Layout from './components/Layout'
 import { NotificationProvider } from './contexts/NotificationContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 
-function AppContent() {
+// Protected Route Component
+function ProtectedRoute({ children }) {
   const { isAuthenticated, isLoading } = useAuth()
 
   if (isLoading) {
@@ -31,26 +33,41 @@ function AppContent() {
   }
 
   if (!isAuthenticated) {
-    return <LoginPage />
+    return <Navigate to="/login" replace />
   }
 
+  return children
+}
+
+function AppContent() {
   return (
     <Router>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Navigate to="/messages" replace />} />
-          <Route path="/messages" element={<MessagesPage />} />
-          <Route path="/tasks" element={<TasksPage />} />
-          <Route path="/tasks/:taskId" element={<TaskDetailPage />} />
-          <Route path="/sandbox" element={<SandboxPage />} />
-          <Route path="/escalations" element={<EscalationsPage />} />
-          <Route path="/faqs" element={<FAQsPage />} />
-          <Route path="/properties" element={<PropertiesPage />} />
-          <Route path="/contacts" element={<ContactsPage />} />
-          <Route path="/prompt" element={<PromptPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-        </Routes>
-      </Layout>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/verify-email" element={<EmailVerificationPage />} />
+        
+        {/* Protected Routes */}
+        <Route path="/*" element={
+          <ProtectedRoute>
+            <Layout>
+              <Routes>
+                <Route path="/" element={<Navigate to="/messages" replace />} />
+                <Route path="/messages" element={<MessagesPage />} />
+                <Route path="/tasks" element={<TasksPage />} />
+                <Route path="/tasks/:taskId" element={<TaskDetailPage />} />
+                <Route path="/sandbox" element={<SandboxPage />} />
+                <Route path="/escalations" element={<EscalationsPage />} />
+                <Route path="/faqs" element={<FAQsPage />} />
+                <Route path="/properties" element={<PropertiesPage />} />
+                <Route path="/contacts" element={<ContactsPage />} />
+                <Route path="/prompt" element={<PromptPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+              </Routes>
+            </Layout>
+          </ProtectedRoute>
+        } />
+      </Routes>
     </Router>
   )
 }

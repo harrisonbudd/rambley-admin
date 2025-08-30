@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Phone, MessageCircle, Send, ArrowLeft, Bot, BotOff, User, CheckSquare, ExternalLink, Search } from 'lucide-react'
 import { Button } from '../components/ui/button'
@@ -19,28 +19,23 @@ export default function MessagesPage() {
   const [newMessage, setNewMessage] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [conversationStates, setConversationStates] = useState({})
-  const [loading, setLoading] = useState(true)
+  const [initialLoading, setInitialLoading] = useState(true)
+  const [searchLoading, setSearchLoading] = useState(false)
   const [error, setError] = useState(null)
   const [conversationLoading, setConversationLoading] = useState(false)
 
-  // Load conversations on component mount
-  useEffect(() => {
-    loadConversations()
-  }, [])
-
-  // Load conversations with search
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      loadConversations()
-    }, 300) // Debounce search
-
-    return () => clearTimeout(timeoutId)
-  }, [searchQuery])
-
-  const loadConversations = async () => {
+  // Memoized loadConversations function to prevent unnecessary recreations
+  const loadConversations = useCallback(async (isSearch = false) => {
     try {
-      setLoading(true)
+      // Set appropriate loading state
+      if (isSearch) {
+        setSearchLoading(true)
+      } else if (initialLoading) {
+        setInitialLoading(true)
+      }
+      
       setError(null)
+      
       const response = await apiService.getConversations({ 
         search: searchQuery || undefined,
         limit: 50 
@@ -48,22 +43,44 @@ export default function MessagesPage() {
       
       setConversations(response.data || [])
       
-      // Initialize conversation states
-      const states = {}
-      response.data?.forEach(conv => {
-        states[conv.id] = { 
-          autoResponseEnabled: conv.autoResponseEnabled ?? true 
-        }
+      // Only update conversation states if we don't already have them or if data changed
+      setConversationStates(prevStates => {
+        const newStates = {}
+        response.data?.forEach(conv => {
+          newStates[conv.id] = { 
+            autoResponseEnabled: prevStates[conv.id]?.autoResponseEnabled ?? conv.autoResponseEnabled ?? true 
+          }
+        })
+        return newStates
       })
-      setConversationStates(states)
       
     } catch (err) {
       console.error('Failed to load conversations:', err)
       setError('Failed to load conversations. Please try again.')
     } finally {
-      setLoading(false)
+      setInitialLoading(false)
+      setSearchLoading(false)
     }
-  }
+  }, [searchQuery, initialLoading])
+
+  // Single useEffect to handle both initial load and search with debouncing
+  useEffect(() => {
+    const isInitialLoad = initialLoading && conversations.length === 0
+    
+    if (isInitialLoad) {
+      // Load immediately on mount
+      loadConversations(false)
+    } else if (searchQuery !== '') {
+      // Debounce search queries
+      const timeoutId = setTimeout(() => {
+        loadConversations(true)
+      }, 300)
+      return () => clearTimeout(timeoutId)
+    } else if (searchQuery === '' && !isInitialLoad) {
+      // Clear search - load immediately without search term
+      loadConversations(false)
+    }
+  }, [searchQuery, loadConversations, initialLoading, conversations.length])
 
   const handleConversationSelect = async (conversation) => {
     try {
@@ -88,31 +105,33 @@ export default function MessagesPage() {
     }
   }
 
-  // Filter conversations based on search query
-  const filteredConversations = conversations.filter(conversation => {
-    if (!searchQuery.trim()) return true
+  // Memoized filtered conversations to prevent unnecessary recalculations
+  const filteredConversations = useMemo(() => {
+    if (!searchQuery.trim()) return conversations
     
     const query = searchQuery.toLowerCase()
     
-    // Search in guest name
-    if (conversation.guestName.toLowerCase().includes(query)) return true
-    
-    // Search in phone number (remove formatting for search)
-    if (conversation.phone.replace(/\D/g, '').includes(query.replace(/\D/g, ''))) return true
-    
-    // Search in property name
-    if (conversation.property.toLowerCase().includes(query)) return true
-    
-    // Search in last message
-    if (conversation.lastMessage.toLowerCase().includes(query)) return true
-    
-    // Search in all messages
-    if (conversation.messages.some(message => 
-      message.text.toLowerCase().includes(query)
-    )) return true
-    
-    return false
-  })
+    return conversations.filter(conversation => {
+      // Search in guest name
+      if (conversation.guestName?.toLowerCase().includes(query)) return true
+      
+      // Search in phone number (remove formatting for search)
+      if (conversation.phone?.replace(/\D/g, '').includes(query.replace(/\D/g, ''))) return true
+      
+      // Search in property name
+      if (conversation.property?.toLowerCase().includes(query)) return true
+      
+      // Search in last message
+      if (conversation.lastMessage?.toLowerCase().includes(query)) return true
+      
+      // Search in all messages if available
+      if (conversation.messages?.some(message => 
+        message.text?.toLowerCase().includes(query)
+      )) return true
+      
+      return false
+    })
+  }, [conversations, searchQuery])
 
   const handleSendMessage = (e) => {
     e.preventDefault()
@@ -211,13 +230,21 @@ export default function MessagesPage() {
           
           {/* Search Input */}
           <div className="mt-3 sm:mt-4 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-brand-mid-gray" />
+            <Search className={cn(
+              "absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-brand-mid-gray",
+              searchLoading && "animate-pulse"
+            )} />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search guests, properties, numbers..."
               className="pl-10"
             />
+            {searchLoading && (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                <div className="w-4 h-4 border-2 border-brand-purple border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            )}
           </div>
         </div>
         
@@ -236,7 +263,7 @@ export default function MessagesPage() {
             </div>
           )}
           
-          {loading ? (
+          {initialLoading ? (
             <div className="p-4 text-center">
               <div className="animate-pulse space-y-4">
                 {[...Array(5)].map((_, i) => (

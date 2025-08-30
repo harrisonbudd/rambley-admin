@@ -18,15 +18,42 @@ class EmailService {
         },
       });
     } else {
-      // Development: Use ethereal email for testing
+      // Development: Create test account with Ethereal Email
+      this.setupTestAccount();
+    }
+  }
+
+  async setupTestAccount() {
+    try {
+      // Generate test SMTP service account from ethereal.email
+      const testAccount = await nodemailer.createTestAccount();
+      
       this.transporter = nodemailer.createTransport({
         host: 'smtp.ethereal.email',
         port: 587,
+        secure: false,
         auth: {
-          user: 'ethereal.user@ethereal.email',
-          pass: 'ethereal.pass'
-        }
+          user: testAccount.user,
+          pass: testAccount.pass,
+        },
       });
+      
+      console.log('📧 Test email account created:');
+      console.log('   User:', testAccount.user);
+      console.log('   Pass:', testAccount.pass);
+    } catch (error) {
+      console.error('Failed to create test account:', error);
+      // Fallback to a simple console log
+      this.transporter = {
+        sendMail: async (options) => {
+          console.log('📧 Would send email:', {
+            to: options.to,
+            subject: options.subject,
+            preview: `Email would be sent to ${options.to}`
+          });
+          return { messageId: 'test-message-id' };
+        }
+      };
     }
   }
 

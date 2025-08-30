@@ -55,12 +55,12 @@ const transformMessage = (dbMessage) => ({
 });
 
 // Transform database conversation to UI format
-const transformConversation = (bookingId, messages) => {
+const transformConversation = (bookingId, messages, guestName = null) => {
   const latestMessage = messages[0]; // Already ordered by timestamp DESC
   
   return {
     id: bookingId || `conversation_${latestMessage.id}`,
-    guestName: 'Guest',
+    guestName: guestName || 'Guest',
     phone: extractPhoneNumber(messages),
     property: 'Property Details Missing',
     lastMessage: latestMessage.message_body || '',
@@ -111,22 +111,24 @@ router.get('/', [
       queryParams.push(`%${search}%`);
     }
 
-    // Query to get conversations with their latest message
+    // Query to get conversations with their latest message and guest names
     const conversationsQuery = `
       WITH latest_messages AS (
-        SELECT DISTINCT ON (COALESCE(booking_id, 'no_booking_' || from_number || '_' || to_number))
-          COALESCE(booking_id, 'no_booking_' || from_number || '_' || to_number) as conversation_id,
-          booking_id,
-          id,
-          message_uuid,
-          timestamp,
-          from_number,
-          to_number,
-          message_body,
-          message_type,
-          requestor_role
+        SELECT DISTINCT ON (COALESCE(ml.booking_id, 'no_booking_' || ml.from_number || '_' || ml.to_number))
+          COALESCE(ml.booking_id, 'no_booking_' || ml.from_number || '_' || ml.to_number) as conversation_id,
+          ml.booking_id,
+          ml.id,
+          ml.message_uuid,
+          ml.timestamp,
+          ml.from_number,
+          ml.to_number,
+          ml.message_body,
+          ml.message_type,
+          ml.requestor_role,
+          COALESCE(b.guest, 'Guest') as guest_name
         FROM message_log ml
-        WHERE account_id = COALESCE(
+        LEFT JOIN bookings b ON (CASE WHEN ml.booking_id ~ '^[0-9]+$' THEN ml.booking_id::integer ELSE NULL END) = b.booking_id AND b.account_id = ml.account_id
+        WHERE ml.account_id = COALESCE(
           NULLIF(current_setting('app.current_account_id', true), '')::INTEGER,
           (SELECT account_id FROM users WHERE id = COALESCE(
             NULLIF(current_setting('app.current_user_id', true), '')::INTEGER,
@@ -134,7 +136,7 @@ router.get('/', [
           ))
         )
         ${searchConditions}
-        ORDER BY conversation_id, timestamp DESC
+        ORDER BY conversation_id, ml.timestamp DESC
       )
       SELECT * FROM latest_messages
       ORDER BY timestamp DESC
@@ -147,7 +149,7 @@ router.get('/', [
     
     // Transform each conversation
     const conversations = result.rows.map(row => {
-      return transformConversation(row.booking_id, [row]);
+      return transformConversation(row.booking_id, [row], row.guest_name);
     });
 
     res.json({
@@ -255,9 +257,29 @@ router.get('/:conversationId', [
 
     // Transform messages and create conversation object
     const messages = result.rows;
+    
+    // Get guest name from booking if available
+    let guestName = null;
+    if (messages[0].booking_id && messages[0].booking_id.match(/^[0-9]+$/)) {
+      const guestQuery = `
+        SELECT guest 
+        FROM bookings 
+        WHERE booking_id = $1::integer AND account_id = COALESCE(
+          NULLIF(current_setting('app.current_account_id', true), '')::INTEGER,
+          (SELECT account_id FROM users WHERE id = COALESCE(
+            NULLIF(current_setting('app.current_user_id', true), '')::INTEGER,
+            0
+          ))
+        )
+      `;
+      const guestResult = await client.query(guestQuery, [messages[0].booking_id]);
+      guestName = guestResult.rows.length > 0 ? guestResult.rows[0].guest : null;
+    }
+    
     const conversation = transformConversation(
       messages[0].booking_id || conversationId, 
-      messages.reverse() // Reverse to show latest at bottom
+      messages.reverse(), // Reverse to show latest at bottom
+      guestName
     );
 
     res.json({

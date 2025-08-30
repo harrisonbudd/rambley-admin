@@ -346,8 +346,8 @@ export default function PromptPage() {
         newTask={newTask}
         setNewTask={setNewTask}
         initialTaskCategories={initialTaskCategories}
-        mockContacts={availableContacts}
-        mockProperties={availableLocations}
+        contacts={availableContacts}
+        properties={availableLocations}
         handleAddTask={handleAddTask}
       />
 

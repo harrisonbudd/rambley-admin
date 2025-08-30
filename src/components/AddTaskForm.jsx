@@ -9,8 +9,8 @@ const AddTaskForm = React.memo(({
   newTask, 
   setNewTask, 
   initialTaskCategories, 
-  mockContacts, 
-  mockProperties, 
+  contacts = [], 
+  properties = [], 
   handleAddTask 
 }) => (
   <Card>
@@ -56,7 +56,7 @@ const AddTaskForm = React.memo(({
             className="w-full h-9 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-2"
           >
             <option value="">No specific contact</option>
-            {mockContacts.map((contact) => (
+            {contacts.map((contact) => (
               <option key={contact.id} value={contact.id}>
                 {contact.name} - {contact.type}
               </option>
@@ -72,7 +72,7 @@ const AddTaskForm = React.memo(({
             className="w-full h-9 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-2"
           >
             <option value="">No specific location</option>
-            {mockProperties.map((property) => (
+            {properties.map((property) => (
               <option key={property.id} value={property.id}>
                 {property.name}
               </option>

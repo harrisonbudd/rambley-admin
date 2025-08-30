@@ -127,7 +127,7 @@ router.get('/', [
           ml.requestor_role,
           COALESCE(b.guest, 'Guest') as guest_name
         FROM message_log ml
-        LEFT JOIN bookings b ON (CASE WHEN ml.booking_id ~ '^[0-9]+$' THEN ml.booking_id::integer ELSE NULL END) = b.booking_id AND b.account_id = ml.account_id
+        LEFT JOIN bookings b ON ml.booking_id ~ '^[0-9]+$' AND ml.booking_id::integer = b.booking_id AND b.account_id = ml.account_id
         WHERE ml.account_id = COALESCE(
           NULLIF(current_setting('app.current_account_id', true), '')::INTEGER,
           (SELECT account_id FROM users WHERE id = COALESCE(

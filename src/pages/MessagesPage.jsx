@@ -10,13 +10,7 @@ import { useNavigate } from 'react-router-dom'
 import { Switch } from '../components/ui/switch'
 import apiService from '../services/api'
 
-// Mock tasks data for reference (will be replaced with API calls later)
-const mockTasks = {
-  1: { id: 1, title: 'Deliver fresh towels - Room 12', type: 'housekeeping', status: 'pending' },
-  2: { id: 2, title: 'WiFi troubleshooting - Mountain Retreat', type: 'maintenance', status: 'in-progress' },
-  3: { id: 3, title: 'Fix dripping bathroom faucet - Beach House', type: 'maintenance', status: 'pending' },
-  4: { id: 4, title: 'Post-checkout inspection - Beach House', type: 'inspection', status: 'pending' },
-}
+// TODO: Replace with actual task API calls when task linking is implemented
 
 export default function MessagesPage() {
   const navigate = useNavigate()
@@ -188,27 +182,17 @@ export default function MessagesPage() {
           <span>Tasks created:</span>
         </div>
         <div className="space-y-1">
-          {generatedTasks.map(taskId => {
-            const task = mockTasks[taskId]
-            if (!task) return null
-            
-            return (
-              <button
-                key={taskId}
-                onClick={() => handleTaskLink(taskId)}
-                className="flex items-center gap-2 text-xs text-brand-purple hover:text-brand-purple/80 transition-colors group"
-              >
-                <div className={cn(
-                  "w-2 h-2 rounded-full",
-                  task.status === 'pending' ? 'bg-yellow-500' :
-                  task.status === 'in-progress' ? 'bg-blue-500' :
-                  'bg-green-500'
-                )} />
-                <span className="flex-1 text-left truncate">{task.title}</span>
-                <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </button>
-            )
-          })}
+          {generatedTasks.map(taskId => (
+            <button
+              key={taskId}
+              onClick={() => handleTaskLink(taskId)}
+              className="flex items-center gap-2 text-xs text-brand-purple hover:text-brand-purple/80 transition-colors group"
+            >
+              <div className="w-2 h-2 rounded-full bg-blue-500" />
+              <span className="flex-1 text-left truncate">Task {taskId}</span>
+              <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+          ))}
         </div>
       </div>
     )

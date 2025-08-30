@@ -62,15 +62,6 @@ const AddContactModal = React.memo(({
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="new-contact-email" className="text-sm font-medium">Email Address *</Label>
-              <Input 
-                id="new-contact-email" 
-                value={newContact.email}
-                onChange={(e) => handleNewContactChange('email', e.target.value)}
-                placeholder="email@example.com"
-              />
-            </div>
-            <div className="space-y-1">
               <Label htmlFor="new-contact-language" className="text-sm font-medium">Preferred Language</Label>
               <select 
                 id="new-contact-language"

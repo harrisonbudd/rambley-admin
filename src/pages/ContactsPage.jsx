@@ -23,7 +23,6 @@ export default function ContactsPage() {
     name: '',
     service_type: '',
     phone: '',
-    email: '',
     preferred_language: 'en',
     notes: '',
     serviceLocations: []
@@ -97,13 +96,8 @@ export default function ContactsPage() {
   }
 
   const handleAddContact = async () => {
-    if (!newContact.name.trim() || !newContact.service_type.trim() || !newContact.phone.trim() || !newContact.email.trim()) {
+    if (!newContact.name.trim() || !newContact.service_type.trim() || !newContact.phone.trim()) {
       showWarning('Please fill in all required fields.')
-      return
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newContact.email)) {
-      showWarning('Please enter a valid email address.')
       return
     }
 
@@ -131,7 +125,6 @@ export default function ContactsPage() {
         name: '',
         service_type: '',
         phone: '',
-        email: '',
         preferred_language: 'en',
         notes: '',
         serviceLocations: []
@@ -202,11 +195,6 @@ export default function ContactsPage() {
       newErrors.phone = 'Please enter a valid phone number'
     }
     
-    if (!editForm.email?.trim()) {
-      newErrors.email = 'Email is required'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email)) {
-      newErrors.email = 'Please enter a valid email address'
-    }
     
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -386,19 +374,6 @@ export default function ContactsPage() {
                         )}
                       </div>
                       
-                      <div>
-                        <Label htmlFor={`contact-email-${contact.id}`} className="text-sm font-medium">Email</Label>
-                        <Input
-                          id={`contact-email-${contact.id}`}
-                          value={editForm.email || ''}
-                          onChange={(e) => updateEditForm('email', e.target.value)}
-                          className={errors.email ? 'border-red-500' : ''}
-                          placeholder="email@example.com"
-                        />
-                        {errors.email && (
-                          <p className="text-sm text-red-500 mt-1">{errors.email}</p>
-                        )}
-                      </div>
 
                       <div>
                         <Label htmlFor={`contact-language-${contact.id}`} className="text-sm font-medium">Preferred Language</Label>
@@ -479,7 +454,6 @@ export default function ContactsPage() {
                       </div>
                       <div className="flex gap-4 mt-2 text-xs text-brand-mid-gray">
                         <span>{contact.phone}</span>
-                        <span>{contact.email}</span>
                       </div>
                       {getServiceLocations(contact).length > 0 && (
                         <div className="flex items-center gap-2 mt-3">

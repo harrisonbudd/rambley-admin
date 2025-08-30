@@ -10,20 +10,19 @@ const router = express.Router();
 router.use(authenticateToken);
 router.use(setAccountContext);
 
-// Validation rules
+// Validation rules (updated for staff)
 const contactValidation = [
   body('name').trim().notEmpty().withMessage('Name is required'),
   body('service_type').trim().notEmpty().withMessage('Service type is required'),
   body('phone').trim().notEmpty().withMessage('Phone is required')
     .matches(/^\+?[\d\s\(\)\-\.]+$/).withMessage('Invalid phone number format'),
-  body('email').trim().isEmail().withMessage('Valid email is required'),
   body('preferred_language').optional().isLength({ min: 2, max: 10 }).withMessage('Invalid language code'),
   body('notes').optional().trim(),
   body('serviceLocations').optional().isArray().withMessage('Service locations must be an array'),
   body('serviceLocations.*').optional().isInt({ min: 1 }).withMessage('Invalid property ID')
 ];
 
-// GET /api/contacts - List all contacts with optional filtering
+// GET /api/contacts - List all staff (transformed as contacts)
 router.get('/', [
   query('service_type').optional().trim(),
   query('property_id').optional().isInt({ min: 1 }),
@@ -33,10 +32,18 @@ router.get('/', [
   query('page').optional().isInt({ min: 1 }),
   query('limit').optional().isInt({ min: 1, max: 100 })
 ], async (req, res) => {
+  const client = await pool.connect();
+  
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
+    }
+
+    // Set RLS context on the same connection that will run the query
+    if (req.user && req.user.accountId) {
+      await client.query(`SET app.current_account_id = '${req.user.accountId}'`);
+      await client.query(`SET app.current_user_id = '${req.user.userId}'`);
     }
 
     const {
@@ -50,76 +57,79 @@ router.get('/', [
     } = req.query;
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
-    let whereConditions = ['c.is_active = $1'];
-    let queryParams = [active === 'true'];
+    let whereConditions = ['s.account_id = $1'];
+    let queryParams = [req.user.accountId];
     let paramCount = 1;
 
     // Build dynamic WHERE clause
     if (service_type) {
       paramCount++;
-      whereConditions.push(`c.service_type ILIKE $${paramCount}`);
+      whereConditions.push(`TRIM(s.role) ILIKE $${paramCount}`);
       queryParams.push(`%${service_type}%`);
     }
 
     if (language) {
       paramCount++;
-      whereConditions.push(`c.preferred_language = $${paramCount}`);
+      whereConditions.push(`s.preferred_language = $${paramCount}`);
       queryParams.push(language);
     }
 
     if (search) {
       paramCount++;
-      whereConditions.push(`(c.name ILIKE $${paramCount} OR c.email ILIKE $${paramCount})`);
+      whereConditions.push(`(s.staff_name ILIKE $${paramCount} OR s.phone ILIKE $${paramCount})`);
       queryParams.push(`%${search}%`);
     }
 
-    let propertyJoin = '';
     if (property_id) {
       paramCount++;
-      propertyJoin = 'INNER JOIN contact_service_locations csl ON c.id = csl.contact_id';
-      whereConditions.push(`csl.property_id = $${paramCount}`);
+      whereConditions.push(`s.property_id = $${paramCount}`);
       queryParams.push(parseInt(property_id));
     }
 
     const whereClause = whereConditions.join(' AND ');
     
-    // Main query with service locations
+    // Main query transforming staff to contacts format
     const query = `
       SELECT 
-        c.*,
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'id', p.id,
-              'name', p.name,
-              'address', p.address
+        s.id,
+        s.staff_name as name,
+        TRIM(BOTH FROM REPLACE(s.role, chr(13), '')) as service_type,
+        s.phone,
+        COALESCE(s.preferred_language, 'en') as preferred_language,
+        '' as notes,
+        true as is_active,
+        s.created_at,
+        s.updated_at,
+        CASE 
+          WHEN s.property_id IS NOT NULL THEN 
+            json_build_array(
+              json_build_object(
+                'id', p.id,
+                'name', p.property_title,
+                'address', p.property_location
+              )
             )
-          ) FILTER (WHERE p.id IS NOT NULL), 
-          '[]'::json
-        ) as service_locations
-      FROM contacts c
-      ${propertyJoin}
-      LEFT JOIN contact_service_locations csl2 ON c.id = csl2.contact_id
-      LEFT JOIN properties p ON csl2.property_id = p.id AND p.is_active = true
+          ELSE '[]'::json
+        END as service_locations
+      FROM staff s
+      LEFT JOIN properties p ON s.property_id = p.id
       WHERE ${whereClause}
-      GROUP BY c.id
-      ORDER BY c.name
+      ORDER BY s.staff_name
       LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}
     `;
 
     queryParams.push(parseInt(limit), offset);
 
-    const result = await pool.query(query, queryParams);
+    const result = await client.query(query, queryParams);
 
     // Get total count
     const countQuery = `
-      SELECT COUNT(DISTINCT c.id) as total
-      FROM contacts c
-      ${propertyJoin}
+      SELECT COUNT(s.id) as total
+      FROM staff s
       WHERE ${whereClause}
     `;
     
-    const countResult = await pool.query(countQuery, queryParams.slice(0, -2));
+    const countResult = await client.query(countQuery, queryParams.slice(0, -2));
     const total = parseInt(countResult.rows[0].total);
 
     res.json({
@@ -133,51 +143,67 @@ router.get('/', [
     });
 
   } catch (error) {
-    console.error('Error fetching contacts:', error);
+    console.error('Error fetching staff:', error);
     res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
   }
 });
 
-// GET /api/contacts/:id - Get single contact
+// GET /api/contacts/:id - Get single staff member (as contact)
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
     const query = `
       SELECT 
-        c.*,
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'id', p.id,
-              'name', p.name,
-              'address', p.address
+        s.id,
+        s.staff_name as name,
+        TRIM(BOTH FROM REPLACE(s.role, chr(13), '')) as service_type,
+        s.phone,
+        COALESCE(s.preferred_language, 'en') as preferred_language,
+        '' as notes,
+        true as is_active,
+        s.created_at,
+        s.updated_at,
+        CASE 
+          WHEN s.property_id IS NOT NULL THEN 
+            json_build_array(
+              json_build_object(
+                'id', p.id,
+                'name', p.property_title,
+                'address', p.property_location
+              )
             )
-          ) FILTER (WHERE p.id IS NOT NULL), 
-          '[]'::json
-        ) as service_locations
-      FROM contacts c
-      LEFT JOIN contact_service_locations csl ON c.id = csl.contact_id
-      LEFT JOIN properties p ON csl.property_id = p.id AND p.is_active = true
-      WHERE c.id = $1 AND c.is_active = true
-      GROUP BY c.id
+          ELSE '[]'::json
+        END as service_locations
+      FROM staff s
+      LEFT JOIN properties p ON s.property_id = p.id
+      WHERE s.id = $1 
+        AND s.account_id = COALESCE(
+          NULLIF(current_setting('app.current_account_id', true), '')::INTEGER,
+          (SELECT account_id FROM users WHERE id = COALESCE(
+            NULLIF(current_setting('app.current_user_id', true), '')::INTEGER,
+            0
+          ))
+        )
     `;
 
     const result = await pool.query(query, [id]);
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Contact not found' });
+      return res.status(404).json({ error: 'Staff member not found' });
     }
 
     res.json(result.rows[0]);
 
   } catch (error) {
-    console.error('Error fetching contact:', error);
+    console.error('Error fetching staff member:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// POST /api/contacts - Create new contact
+// POST /api/contacts - Create new staff member
 router.post('/', contactValidation, async (req, res) => {
   const client = await pool.connect();
   
@@ -191,7 +217,6 @@ router.post('/', contactValidation, async (req, res) => {
       name,
       service_type,
       phone,
-      email,
       preferred_language = 'en',
       notes,
       serviceLocations = []
@@ -199,85 +224,78 @@ router.post('/', contactValidation, async (req, res) => {
 
     await client.query('BEGIN');
 
-    // Check if email already exists (exclude soft-deleted contacts)
-    const emailCheck = await client.query('SELECT id FROM contacts WHERE email = $1 AND is_active = true', [email]);
-    if (emailCheck.rows.length > 0) {
-      await client.query('ROLLBACK');
-      return res.status(400).json({ error: 'Email already exists' });
+    // Set RLS context
+    await client.query(`SET app.current_account_id = '${req.user.accountId}'`);
+    await client.query(`SET app.current_user_id = '${req.user.userId}'`);
+
+    // Get the property_id (use first service location, null if none)
+    const propertyId = serviceLocations.length > 0 ? serviceLocations[0] : null;
+
+    // Verify property ID exists if provided
+    if (propertyId) {
+      const propertyCheck = await client.query(
+        'SELECT id FROM properties WHERE id = $1',
+        [propertyId]
+      );
+
+      if (propertyCheck.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Invalid property ID' });
+      }
     }
 
-    // Insert contact
-    const contactQuery = `
-      INSERT INTO contacts (name, service_type, phone, email, preferred_language, notes, account_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+    // Insert staff member
+    const staffQuery = `
+      INSERT INTO staff (staff_name, role, phone, preferred_language, property_id, account_id)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
     `;
 
-    const contactResult = await client.query(contactQuery, [
-      name, service_type, phone, email, preferred_language, notes, req.user.accountId
+    const staffResult = await client.query(staffQuery, [
+      name, service_type, phone, preferred_language || null, propertyId, req.user.accountId
     ]);
 
-    const contact = contactResult.rows[0];
-
-    // Insert service locations
-    if (serviceLocations.length > 0) {
-      // Verify all property IDs exist
-      const propertyCheck = await client.query(
-        'SELECT id FROM properties WHERE id = ANY($1) AND is_active = true',
-        [serviceLocations]
-      );
-
-      if (propertyCheck.rows.length !== serviceLocations.length) {
-        await client.query('ROLLBACK');
-        return res.status(400).json({ error: 'One or more property IDs are invalid' });
-      }
-
-      // Insert service locations
-      for (const propertyId of serviceLocations) {
-        await client.query(
-          'INSERT INTO contact_service_locations (contact_id, property_id) VALUES ($1, $2)',
-          [contact.id, propertyId]
-        );
-      }
-    }
+    const staff = staffResult.rows[0];
 
     await client.query('COMMIT');
 
-    // Fetch the complete contact with service locations
-    const completeContactQuery = `
-      SELECT 
-        c.*,
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'id', p.id,
-              'name', p.name,
-              'address', p.address
-            )
-          ) FILTER (WHERE p.id IS NOT NULL), 
-          '[]'::json
-        ) as service_locations
-      FROM contacts c
-      LEFT JOIN contact_service_locations csl ON c.id = csl.contact_id
-      LEFT JOIN properties p ON csl.property_id = p.id AND p.is_active = true
-      WHERE c.id = $1
-      GROUP BY c.id
-    `;
+    // Return staff data in contacts format
+    const response = {
+      id: staff.id,
+      name: staff.staff_name,
+      service_type: staff.role ? staff.role.trim() : '',
+      phone: staff.phone,
+      preferred_language: staff.preferred_language || 'en',
+      notes: '',
+      is_active: true,
+      created_at: staff.created_at,
+      updated_at: staff.updated_at,
+      service_locations: []
+    };
 
-    const finalResult = await pool.query(completeContactQuery, [contact.id]);
+    // Add property info if exists
+    if (propertyId) {
+      const propertyResult = await client.query(
+        'SELECT id, property_title as name, property_location as address FROM properties WHERE id = $1',
+        [propertyId]
+      );
+      if (propertyResult.rows.length > 0) {
+        response.service_locations = [propertyResult.rows[0]];
+      }
+    }
 
-    res.status(201).json(finalResult.rows[0]);
+    res.status(201).json(response);
 
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('Error creating contact:', error);
+    console.error('Error creating staff member:', error);
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();
   }
 });
 
-// PUT /api/contacts/:id - Update contact
+// PUT /api/contacts/:id - Update staff member
 router.put('/:id', contactValidation, async (req, res) => {
   const client = await pool.connect();
   
@@ -292,7 +310,6 @@ router.put('/:id', contactValidation, async (req, res) => {
       name,
       service_type,
       phone,
-      email,
       preferred_language,
       notes,
       serviceLocations = []
@@ -300,148 +317,174 @@ router.put('/:id', contactValidation, async (req, res) => {
 
     await client.query('BEGIN');
 
-    // Check if contact exists
-    const contactCheck = await client.query('SELECT id FROM contacts WHERE id = $1 AND is_active = true', [id]);
-    if (contactCheck.rows.length === 0) {
+    // Set RLS context
+    await client.query(`SET app.current_account_id = '${req.user.accountId}'`);
+    await client.query(`SET app.current_user_id = '${req.user.userId}'`);
+
+    // Check if staff member exists
+    const staffCheck = await client.query(
+      'SELECT id FROM staff WHERE id = $1 AND account_id = $2', 
+      [id, req.user.accountId]
+    );
+    if (staffCheck.rows.length === 0) {
       await client.query('ROLLBACK');
-      return res.status(404).json({ error: 'Contact not found' });
+      return res.status(404).json({ error: 'Staff member not found' });
     }
 
-    // Check if email is taken by another contact (exclude soft-deleted contacts)
-    const emailCheck = await client.query('SELECT id FROM contacts WHERE email = $1 AND id != $2 AND is_active = true', [email, id]);
-    if (emailCheck.rows.length > 0) {
-      await client.query('ROLLBACK');
-      return res.status(400).json({ error: 'Email already exists' });
+    // Get the property_id (use first service location, null if none)
+    const propertyId = serviceLocations.length > 0 ? serviceLocations[0] : null;
+
+    // Verify property ID exists if provided
+    if (propertyId) {
+      const propertyCheck = await client.query(
+        'SELECT id FROM properties WHERE id = $1',
+        [propertyId]
+      );
+
+      if (propertyCheck.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Invalid property ID' });
+      }
     }
 
-    // Update contact
+    // Update staff member
     const updateQuery = `
-      UPDATE contacts 
-      SET name = $1, service_type = $2, phone = $3, email = $4, 
-          preferred_language = $5, notes = $6, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $7
+      UPDATE staff 
+      SET staff_name = $1, role = $2, phone = $3, 
+          preferred_language = $4, property_id = $5, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $6 AND account_id = $7
       RETURNING *
     `;
 
-    await client.query(updateQuery, [
-      name, service_type, phone, email, preferred_language, notes, id
+    const staffResult = await client.query(updateQuery, [
+      name, service_type, phone, preferred_language || null, propertyId, id, req.user.accountId
     ]);
 
-    // Update service locations
-    // First delete existing ones
-    await client.query('DELETE FROM contact_service_locations WHERE contact_id = $1', [id]);
-
-    // Insert new ones
-    if (serviceLocations.length > 0) {
-      // Verify all property IDs exist
-      const propertyCheck = await client.query(
-        'SELECT id FROM properties WHERE id = ANY($1) AND is_active = true',
-        [serviceLocations]
-      );
-
-      if (propertyCheck.rows.length !== serviceLocations.length) {
-        await client.query('ROLLBACK');
-        return res.status(400).json({ error: 'One or more property IDs are invalid' });
-      }
-
-      for (const propertyId of serviceLocations) {
-        await client.query(
-          'INSERT INTO contact_service_locations (contact_id, property_id) VALUES ($1, $2)',
-          [id, propertyId]
-        );
-      }
-    }
+    const staff = staffResult.rows[0];
 
     await client.query('COMMIT');
 
-    // Fetch updated contact with service locations
-    const completeContactQuery = `
-      SELECT 
-        c.*,
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'id', p.id,
-              'name', p.name,
-              'address', p.address
-            )
-          ) FILTER (WHERE p.id IS NOT NULL), 
-          '[]'::json
-        ) as service_locations
-      FROM contacts c
-      LEFT JOIN contact_service_locations csl ON c.id = csl.contact_id
-      LEFT JOIN properties p ON csl.property_id = p.id AND p.is_active = true
-      WHERE c.id = $1
-      GROUP BY c.id
-    `;
+    // Return staff data in contacts format
+    const response = {
+      id: staff.id,
+      name: staff.staff_name,
+      service_type: staff.role ? staff.role.trim() : '',
+      phone: staff.phone,
+      preferred_language: staff.preferred_language || 'en',
+      notes: '',
+      is_active: true,
+      created_at: staff.created_at,
+      updated_at: staff.updated_at,
+      service_locations: []
+    };
 
-    const result = await pool.query(completeContactQuery, [id]);
-    res.json(result.rows[0]);
+    // Add property info if exists
+    if (propertyId) {
+      const propertyResult = await client.query(
+        'SELECT id, property_title as name, property_location as address FROM properties WHERE id = $1',
+        [propertyId]
+      );
+      if (propertyResult.rows.length > 0) {
+        response.service_locations = [propertyResult.rows[0]];
+      }
+    }
+
+    res.json(response);
 
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('Error updating contact:', error);
+    console.error('Error updating staff member:', error);
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();
   }
 });
 
-// DELETE /api/contacts/:id - Delete contact (soft delete)
+// DELETE /api/contacts/:id - Delete staff member
 router.delete('/:id', async (req, res) => {
+  const client = await pool.connect();
+  
   try {
     const { id } = req.params;
 
-    const result = await pool.query(
-      'UPDATE contacts SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND is_active = true RETURNING id',
-      [id]
+    await client.query('BEGIN');
+    
+    // Set RLS context
+    await client.query(`SET app.current_account_id = '${req.user.accountId}'`);
+    await client.query(`SET app.current_user_id = '${req.user.userId}'`);
+
+    const result = await client.query(
+      'DELETE FROM staff WHERE id = $1 AND account_id = $2 RETURNING id',
+      [id, req.user.accountId]
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Contact not found' });
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Staff member not found' });
     }
 
-    res.json({ message: 'Contact deleted successfully' });
+    await client.query('COMMIT');
+    res.json({ message: 'Staff member deleted successfully' });
 
   } catch (error) {
-    console.error('Error deleting contact:', error);
+    await client.query('ROLLBACK');
+    console.error('Error deleting staff member:', error);
     res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
   }
 });
 
-// GET /api/contacts/by-property/:propertyId - Get contacts by property
+// GET /api/contacts/by-property/:propertyId - Get staff by property
 router.get('/by-property/:propertyId', async (req, res) => {
+  const client = await pool.connect();
+  
   try {
     const { propertyId } = req.params;
 
+    // Set RLS context
+    await client.query(`SET app.current_account_id = '${req.user.accountId}'`);
+    await client.query(`SET app.current_user_id = '${req.user.userId}'`);
+
     const query = `
       SELECT 
-        c.*,
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'id', p.id,
-              'name', p.name,
-              'address', p.address
-            )
-          ) FILTER (WHERE p.id IS NOT NULL), 
-          '[]'::json
+        s.id,
+        s.staff_name as name,
+        TRIM(BOTH FROM REPLACE(s.role, chr(13), '')) as service_type,
+        s.phone,
+        COALESCE(s.preferred_language, 'en') as preferred_language,
+        '' as notes,
+        true as is_active,
+        s.created_at,
+        s.updated_at,
+        json_build_array(
+          json_build_object(
+            'id', p.id,
+            'name', p.name,
+            'address', p.address
+          )
         ) as service_locations
-      FROM contacts c
-      INNER JOIN contact_service_locations csl ON c.id = csl.contact_id
-      LEFT JOIN contact_service_locations csl2 ON c.id = csl2.contact_id
-      LEFT JOIN properties p ON csl2.property_id = p.id AND p.is_active = true
-      WHERE csl.property_id = $1 AND c.is_active = true
-      GROUP BY c.id
-      ORDER BY c.name
+      FROM staff s
+      INNER JOIN properties p ON s.property_id = p.id
+      WHERE s.property_id = $1 
+        AND s.account_id = COALESCE(
+          NULLIF(current_setting('app.current_account_id', true), '')::INTEGER,
+          (SELECT account_id FROM users WHERE id = COALESCE(
+            NULLIF(current_setting('app.current_user_id', true), '')::INTEGER,
+            0
+          ))
+        )
+      ORDER BY s.staff_name
     `;
 
-    const result = await pool.query(query, [propertyId]);
+    const result = await client.query(query, [propertyId]);
     res.json(result.rows);
 
   } catch (error) {
-    console.error('Error fetching contacts by property:', error);
+    console.error('Error fetching staff by property:', error);
     res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
   }
 });
 

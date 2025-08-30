@@ -1,9 +1,11 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { body, validationResult } from 'express-validator';
 import pool from '../config/database.js';
 import { authenticateToken, requireAdmin } from '../middleware/auth.js';
+import emailService from '../services/emailService.js';
 
 const router = express.Router();
 
@@ -152,6 +154,92 @@ router.post('/register', authenticateToken, requireAdmin, [
   }
 });
 
+// POST /api/auth/signup (Public signup for regular users)
+router.post('/signup', [
+  body('email').isEmail().normalizeEmail(),
+  body('firstName').trim().isLength({ min: 1 }).withMessage('First name is required'),
+  body('lastName').trim().isLength({ min: 1 }).withMessage('Last name is required'),
+  ...passwordValidation
+], async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        error: 'Invalid input',
+        details: errors.array()
+      });
+    }
+
+    const { email, password, firstName, lastName } = req.body;
+
+    // Check if user already exists
+    const existingUser = await pool.query(
+      'SELECT id FROM users WHERE email = $1',
+      [email]
+    );
+
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ error: 'User with this email already exists' });
+    }
+
+    // Generate email verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    // Hash password
+    const saltRounds = 12;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+
+    // Create user with email verification required
+    const result = await pool.query(
+      `INSERT INTO users (
+        email, password_hash, first_name, last_name, role, 
+        is_active, email_verified, email_verification_token, email_verification_expires
+      ) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+      RETURNING id, email, first_name, last_name, created_at`,
+      [
+        email, passwordHash, firstName, lastName, 'user', 
+        false, false, verificationToken, verificationExpires
+      ]
+    );
+
+    const newUser = result.rows[0];
+
+    // Send verification email
+    const emailResult = await emailService.sendVerificationEmail(
+      email, 
+      firstName, 
+      verificationToken
+    );
+
+    if (!emailResult.success) {
+      console.error('Failed to send verification email:', emailResult.error);
+      // Don't fail the signup, but log the error
+    }
+
+    res.status(201).json({
+      message: 'Account created successfully! Please check your email to verify your account.',
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+        firstName: newUser.first_name,
+        lastName: newUser.last_name,
+        createdAt: newUser.created_at
+      },
+      emailSent: emailResult.success,
+      ...(process.env.NODE_ENV === 'development' && emailResult.previewUrl && {
+        previewUrl: emailResult.previewUrl
+      })
+    });
+  } catch (error) {
+    if (error.code === '23505') { // PostgreSQL unique violation
+      return res.status(400).json({ error: 'User with this email already exists' });
+    }
+    next(error);
+  }
+});
+
 // POST /api/auth/refresh
 router.post('/refresh', async (req, res, next) => {
   try {
@@ -244,6 +332,136 @@ router.get('/me', authenticateToken, async (req, res, next) => {
         createdAt: user.created_at,
         lastLogin: user.last_login
       }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/auth/verify-email
+router.post('/verify-email', [
+  body('token').trim().notEmpty().withMessage('Verification token is required')
+], async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        error: 'Invalid input',
+        details: errors.array()
+      });
+    }
+
+    const { token } = req.body;
+
+    // Find user with this verification token
+    const result = await pool.query(
+      `SELECT id, email, first_name, last_name, email_verification_expires 
+       FROM users 
+       WHERE email_verification_token = $1 AND email_verified = false`,
+      [token]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({ error: 'Invalid or expired verification token' });
+    }
+
+    const user = result.rows[0];
+
+    // Check if token has expired
+    if (new Date() > new Date(user.email_verification_expires)) {
+      return res.status(400).json({ error: 'Verification token has expired' });
+    }
+
+    // Verify the user's email and activate account
+    await pool.query(
+      `UPDATE users 
+       SET email_verified = true, 
+           is_active = true, 
+           email_verification_token = NULL, 
+           email_verification_expires = NULL,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1`,
+      [user.id]
+    );
+
+    // Send welcome email
+    const emailResult = await emailService.sendWelcomeEmail(
+      user.email, 
+      user.first_name
+    );
+
+    if (!emailResult.success) {
+      console.error('Failed to send welcome email:', emailResult.error);
+      // Don't fail the verification, but log the error
+    }
+
+    res.json({
+      message: 'Email verified successfully! Your account is now active.',
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        emailVerified: true,
+        isActive: true
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /api/auth/resend-verification
+router.get('/resend-verification/:email', async (req, res, next) => {
+  try {
+    const { email } = req.params;
+
+    // Find unverified user
+    const result = await pool.query(
+      'SELECT id, first_name, email_verified FROM users WHERE email = $1',
+      [email]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const user = result.rows[0];
+
+    if (user.email_verified) {
+      return res.status(400).json({ error: 'Email is already verified' });
+    }
+
+    // Generate new verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    // Update user with new token
+    await pool.query(
+      `UPDATE users 
+       SET email_verification_token = $1, 
+           email_verification_expires = $2,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $3`,
+      [verificationToken, verificationExpires, user.id]
+    );
+
+    // Send new verification email
+    const emailResult = await emailService.sendVerificationEmail(
+      email, 
+      user.first_name, 
+      verificationToken
+    );
+
+    if (!emailResult.success) {
+      return res.status(500).json({ error: 'Failed to send verification email' });
+    }
+
+    res.json({
+      message: 'Verification email sent successfully!',
+      ...(process.env.NODE_ENV === 'development' && emailResult.previewUrl && {
+        previewUrl: emailResult.previewUrl
+      })
     });
   } catch (error) {
     next(error);
